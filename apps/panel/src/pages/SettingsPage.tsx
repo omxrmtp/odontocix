@@ -173,6 +173,7 @@ function UsersTab() {
 
       <Card>
         <CardContent className="pt-6">
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -234,6 +235,7 @@ function UsersTab() {
               )}
             </TableBody>
           </Table>
+          </div>
 
           <MobileCardList
             items={items}
@@ -411,7 +413,7 @@ function RolesTab() {
 
       <Card>
         <CardContent className="pt-6">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>

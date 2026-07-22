@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Calendar } from '@fullcalendar/core'
 import dayGridPlugin from '@fullcalendar/daygrid'
+import timeGridPlugin from '@fullcalendar/timegrid'
+import listPlugin from '@fullcalendar/list'
 import interactionPlugin from '@fullcalendar/interaction'
 import { appointmentsApi, patientsApi, doctorsApi } from '@/lib/endpoints'
 import { Button } from '@/components/ui/button'
@@ -95,15 +97,40 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     if (!calendarRef.current || calendarInstance.current) return
+    const isMobile = window.innerWidth < 768
     const cal = new Calendar(calendarRef.current, {
-      plugins: [dayGridPlugin, interactionPlugin],
-      initialView: 'dayGridMonth',
+      plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
+      initialView: isMobile ? 'listWeek' : 'dayGridMonth',
       locale: 'es',
       height: 'auto',
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
-        right: 'dayGridMonth,dayGridWeek,dayGridDay',
+        right: isMobile ? 'listWeek' : 'dayGridMonth,dayGridWeek,dayGridDay',
+      },
+      buttonText: {
+        today: 'Hoy',
+        month: 'Mes',
+        week: 'Semana',
+        day: 'Día',
+        list: 'Lista',
+      },
+      windowResize: (view) => {
+        if (window.innerWidth < 768) {
+          cal.changeView('listWeek')
+          cal.setOption('headerToolbar', {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'listWeek',
+          })
+        } else {
+          cal.changeView('dayGridMonth')
+          cal.setOption('headerToolbar', {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek,dayGridDay',
+          })
+        }
       },
       eventClick: (info) => {
         if (!canEditRef.current) return

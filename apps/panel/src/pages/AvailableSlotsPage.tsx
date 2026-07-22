@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import MobileCardList from '@/components/app/MobileCardList'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { availableSlotsApi, doctorsApi } from '@/lib/endpoints'
@@ -149,7 +150,8 @@ export default function AvailableSlotsPage() {
           ) : (slots ?? []).length === 0 ? (
             <p className="text-muted-foreground text-sm py-6">No hay horarios para esta fecha.</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border">
+            <>
+            <div className="overflow-x-auto rounded-lg border hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -195,6 +197,39 @@ export default function AvailableSlotsPage() {
                 </TableBody>
               </Table>
             </div>
+
+            <MobileCardList
+              items={slots ?? []}
+              keyFn={(s: any) => s.id}
+              renderCard={(s: any) => (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">{s.date}</span>
+                    {s.is_booked ? (
+                      <Badge variant="destructive">Reservado</Badge>
+                    ) : s.is_available ? (
+                      <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-100">Disponible</Badge>
+                    ) : (
+                      <Badge variant="secondary">No disponible</Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(`1970-01-01T${s.start_time}`), 'HH:mm')} - {format(new Date(`1970-01-01T${s.end_time}`), 'HH:mm')}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {s.doctor ? `Dr. ${s.doctor.first_name} ${s.doctor.first_last_name}` : '-'}
+                  </div>
+                  {canEditSlots && (
+                    <div className="pt-1">
+                      <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(s.id)}>
+                        <Trash2 className="w-3 h-3 mr-1" /> Eliminar
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            />
+            </>
           )}
         </div>
       </div>

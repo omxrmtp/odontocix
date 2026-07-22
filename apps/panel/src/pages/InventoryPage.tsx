@@ -294,6 +294,7 @@ export default function InventoryPage() {
 
       <Card>
         <CardContent className="pt-6">
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -367,6 +368,7 @@ export default function InventoryPage() {
               )}
             </TableBody>
           </Table>
+          </div>
 
           <MobileCardList
             items={data}

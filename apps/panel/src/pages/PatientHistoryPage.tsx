@@ -252,6 +252,7 @@ export default function PatientHistoryPage() {
           <Card>
             <CardHeader><CardTitle>Registros clínicos</CardTitle></CardHeader>
             <CardContent>
+              <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -283,6 +284,7 @@ export default function PatientHistoryPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -298,6 +300,7 @@ export default function PatientHistoryPage() {
           <Card>
             <CardHeader><CardTitle>Tratamientos</CardTitle></CardHeader>
             <CardContent>
+              <div className="hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -329,6 +332,7 @@ export default function PatientHistoryPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </div>

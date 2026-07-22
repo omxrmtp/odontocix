@@ -102,6 +102,7 @@ export default function CashPage() {
 
       <Card>
         <CardContent className="pt-6">
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -136,6 +137,7 @@ export default function CashPage() {
               )}
             </TableBody>
           </Table>
+          </div>
 
           <MobileCardList
             items={transactions?.data ?? []}

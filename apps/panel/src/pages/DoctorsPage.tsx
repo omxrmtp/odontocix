@@ -108,6 +108,7 @@ export default function DoctorsPage() {
 
       <Card>
         <CardContent className="pt-6">
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -147,6 +148,7 @@ export default function DoctorsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
 
           <MobileCardList
             items={data?.data ?? []}

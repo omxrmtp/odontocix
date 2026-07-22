@@ -49,6 +49,7 @@ export default function PatientsPage() {
             className="mb-4 w-full sm:w-64"
           />
 
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -93,6 +94,7 @@ export default function PatientsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
 
           <MobileCardList
             items={data?.data ?? []}

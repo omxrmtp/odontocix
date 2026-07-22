@@ -105,6 +105,7 @@ export default function BudgetsPage() {
 
       <Card>
         <CardContent className="pt-6">
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -141,6 +142,7 @@ export default function BudgetsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
 
           <MobileCardList
             items={budgets?.data ?? []}

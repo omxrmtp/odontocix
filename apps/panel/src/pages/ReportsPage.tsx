@@ -209,7 +209,7 @@ export default function ReportsPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto hidden md:block">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -266,7 +266,7 @@ export default function ReportsPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto hidden md:block">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -324,7 +324,7 @@ export default function ReportsPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto hidden md:block">
                     <Table>
                       <TableHeader>
                         <TableRow>

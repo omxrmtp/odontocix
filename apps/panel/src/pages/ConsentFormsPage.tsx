@@ -307,6 +307,7 @@ export default function ConsentFormsPage() {
 
       <Card>
         <CardContent className="pt-6">
+          <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -360,6 +361,7 @@ export default function ConsentFormsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
 
           <MobileCardList
             items={forms}
