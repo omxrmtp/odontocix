@@ -40,7 +40,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www
 
 # Copy full application code first
-COPY api/ .
+COPY api/ /var/www/
+
+RUN ls -la /var/www/public/
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts || \
