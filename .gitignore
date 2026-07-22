@@ -2,12 +2,15 @@ node_modules/
 vendor/
 .env
 .env.local
+.env.production
 .DS_Store
 *.log
 /dist
 /build
 /.idea
 *.sqlite
+/database/tenant*
+/database/*.sqlite
 /storage/framework/cache/data/*
 !/storage/framework/cache/data/.gitkeep
 /storage/framework/sessions/*
@@ -18,3 +21,10 @@ public/hot
 public/storage
 storage/*.key
 .phpunit.result.cache
+composer.phar
+npm-debug.log*
+yarn-error.log*
+*.bak
+*.swp
+*.swo
+*~

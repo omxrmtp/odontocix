@@ -11,6 +11,8 @@ class DoctorController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('view', Doctor::class);
+
         $doctors = Doctor::query()
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('first_name', 'ilike', "%{$s}%")
@@ -25,6 +27,8 @@ class DoctorController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Doctor::class);
+
         $data = $request->validate([
             'first_name' => 'required|string|max:255',
             'first_last_name' => 'required|string|max:255',
@@ -42,11 +46,15 @@ class DoctorController extends Controller
 
     public function show(Doctor $doctor): JsonResponse
     {
+        $this->authorize('view', $doctor);
+
         return response()->json($doctor);
     }
 
     public function update(Request $request, Doctor $doctor): JsonResponse
     {
+        $this->authorize('update', $doctor);
+
         $data = $request->validate([
             'first_name' => 'sometimes|string|max:255',
             'first_last_name' => 'sometimes|string|max:255',
@@ -64,6 +72,8 @@ class DoctorController extends Controller
 
     public function destroy(Doctor $doctor): JsonResponse
     {
+        $this->authorize('delete', $doctor);
+
         $doctor->delete();
 
         return response()->json(['message' => 'Doctor eliminado.']);

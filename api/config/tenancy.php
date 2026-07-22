@@ -3,10 +3,9 @@
 declare(strict_types=1);
 
 use Stancl\Tenancy\Database\Models\Domain;
-use Stancl\Tenancy\Database\Models\Tenant;
 
 return [
-    'tenant_model' => Tenant::class,
+    'tenant_model' => App\Models\Tenant::class,
     'id_generator' => Stancl\Tenancy\UUIDGenerator::class,
 
     'domain_model' => Domain::class,
@@ -28,8 +27,11 @@ return [
      * To configure their behavior, see the config keys below.
      */
     'bootstrappers' => [
-        // Single-DB multi-tenancy: no per-tenant databases, caches, or filesystems
-        // We use tenant_id column + global scopes instead
+        // DatabaseTenancyBootstrapper desactivado durante transición
+        // (activar al migrar completamente a multi-DB)
+        // Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper::class,
+        Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper::class,
+        Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper::class,
     ],
 
     /**

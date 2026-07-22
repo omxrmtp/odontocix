@@ -1,0 +1,91 @@
+services:
+  # Backend API (Laravel)
+  - type: web
+    name: odontocix-api
+    runtime: docker
+    repo: https://github.com/omxrmtp/odontocix.git
+    branch: main
+    rootDir: .
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: APP_NAME
+        value: OdontoCix
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        value: https://odontocix-api.onrender.com
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        sync: false  # Set manually in Render dashboard
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: MAIL_MAILER
+        value: resend
+      - key: MAIL_FROM_ADDRESS
+        value: noreply@odontocix.com
+      - key: MAIL_FROM_NAME
+        value: OdontoCix
+      - key: SANCTUM_STATEFUL_DOMAINS
+        value: odontocix.onrender.com,odontocix-api.onrender.com
+      - key: FRONTEND_URL
+        value: https://odontocix.onrender.com
+      - key: RENIEC_API_URL
+        value: https://api.decolecta.com/v1/reniec/dni
+      - key: RENIEC_API_TOKEN
+        sync: false  # Set manually in Render dashboard
+      - key: RESEND_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: SANCTUM_TOKEN_EXPIRATION
+        value: "10080"
+      - key: DEMO_TENANT_EMAIL
+        value: demo@odontocix.com
+      - key: DEMO_TENANT_NAME
+        value: "Clínica Demo"
+      - key: DEMO_TENANT_RUC
+        value: "12345678901"
+      - key: DEMO_TENANT_PHONE
+        value: "999000000"
+      - key: DEMO_TENANT_ADDRESS
+        value: "Av. Demostración 123"
+      - key: DEMO_ADMIN_EMAIL
+        value: admin@odontocix.com
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false  # Set manually in Render dashboard (strong password)
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan config:cache
+      php artisan route:cache
+      php artisan view:cache
+      php artisan migrate --force
+      php artisan db:seed --class=RoleSeeder --force
+    healthCheckPath: /health
+    numInstances: 1
+    plan: starter
+
+  # Frontend (React Static Site)
+  - type: static
+    name: odontocix-panel
+    runtime: static
+    repo: https://github.com/omxrmtp/odontocix.git
+    branch: main
+    rootDir: apps/panel
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://odontocix-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://odontocix-api.onrender.com/api/$1
+      - type: rewrite
+        source: /*
+        destination: /index.html

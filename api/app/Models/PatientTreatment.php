@@ -2,8 +2,12 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 class PatientTreatment extends BaseModel
 {
+    use Auditable, HasFactory;
     protected $fillable = [
         'tenant_id', 'patient_id', 'treatment_id', 'doctor_id',
         'status', 'agreed_price', 'tooth_fdi',

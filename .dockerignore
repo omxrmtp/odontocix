@@ -1,0 +1,65 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment files
+.env
+.env.local
+.env.testing
+.env.production
+.env.example
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build artifacts
+/dist
+/build
+/public/build
+/public/hot
+
+# Storage (will be mounted or created at runtime)
+/storage/*.key
+/storage/logs/*.log
+/storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+/storage/app/public/*
+!/storage/app/public/.gitkeep
+
+# Cache
+bootstrap/cache/*.php
+.phpunit.result.cache
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Tests
+/tests
+coverage/
+phpunit.xml
+
+# Local databases
+database.sqlite
+*.sqlite
+
+# Tenant directories (created at runtime)
+database/tenant*

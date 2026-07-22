@@ -14,6 +14,8 @@ class PatientController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('view', Patient::class);
+
         $patients = Patient::query()
             ->when($request->search, fn ($q, $s) => $q->where(function ($q) use ($s) {
                 $q->where('dni', 'like', "%{$s}%")
@@ -29,48 +31,71 @@ class PatientController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Patient::class);
+
         $data = $request->validate([
             'dni' => 'required|string|size:8|unique:patients',
             'first_name' => 'required|string|max:255',
+            'second_name' => 'nullable|string|max:255',
             'first_last_name' => 'required|string|max:255',
             'second_last_name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
             'address' => 'nullable|string|max:255',
+            'reference' => 'nullable|string|max:255',
             'blood_type' => 'nullable|string|max:5',
             'birth_date' => 'nullable|date',
+            'gender' => 'nullable|string|max:1',
             'observations' => 'nullable|string',
         ]);
 
-        $patient = Patient::create($data + ['reniec_cached_at' => now()]);
+        $patient = Patient::create($data + [
+            'reniec_cached_at' => now(),
+            'portal_token' => \Illuminate\Support\Str::random(32),
+        ]);
 
         return response()->json($patient, 201);
     }
 
     public function show(Patient $patient): JsonResponse
     {
+        $this->authorize('view', $patient);
+
         return response()->json($patient->load('clinicalRecords', 'teethRecords'));
     }
 
     public function update(Request $request, Patient $patient): JsonResponse
     {
+        $this->authorize('update', $patient);
+
         $data = $request->validate([
             'first_name' => 'sometimes|string|max:255',
+            'second_name' => 'nullable|string|max:255',
             'first_last_name' => 'sometimes|string|max:255',
             'second_last_name' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
             'address' => 'nullable|string|max:255',
+            'reference' => 'nullable|string|max:255',
             'blood_type' => 'nullable|string|max:5',
             'birth_date' => 'nullable|date',
+            'gender' => 'nullable|string|max:1',
             'observations' => 'nullable|string',
         ]);
 
         $patient->update($data);
+
+        if (! $patient->portal_token) {
+            $patient->update(['portal_token' => \Illuminate\Support\Str::random(32)]);
+        }
 
         return response()->json($patient);
     }
 
     public function destroy(Patient $patient): JsonResponse
     {
+        $this->authorize('delete', $patient);
+
         $patient->delete();
 
         return response()->json(['message' => 'Paciente eliminado.']);
@@ -96,6 +121,8 @@ class PatientController extends Controller
 
     public function history(Patient $patient): JsonResponse
     {
+        $this->authorize('view', $patient);
+
         return response()->json(
             $patient->load(['clinicalRecords.doctor', 'teethRecords', 'treatments.treatment'])
         );

@@ -17,8 +17,9 @@ export default function LoginPage() {
     e.preventDefault()
     try {
       await login(email, password)
-    } catch {
-      setError('Credenciales inválidas')
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.response?.data?.errors?.email?.[0] || e?.message || 'Credenciales inválidas'
+      setError(msg)
     }
   }
 

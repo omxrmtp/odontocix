@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getUser, login as apiLogin, logout as apiLogout, type User } from '@/lib/auth'
+import { setToken, setOnUnauthorized } from '@/lib/api'
 
 interface AuthContextType {
   user: User | null
@@ -14,21 +16,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const logout = useCallback(async () => {
+    await apiLogout()
+    setUser(null)
+  }, [])
+
   useEffect(() => {
+    setOnUnauthorized(() => {
+      setUser(null)
+    })
+  }, [])
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setLoading(false)
+      return
+    }
     getUser()
       .then(setUser)
-      .catch(() => setUser(null))
+      .catch(() => {
+        localStorage.removeItem('token')
+        setUser(null)
+      })
       .finally(() => setLoading(false))
   }, [])
 
   const login = async (email: string, password: string) => {
     const u = await apiLogin(email, password)
     setUser(u)
-  }
-
-  const logout = async () => {
-    await apiLogout()
-    setUser(null)
   }
 
   return (

@@ -11,15 +11,19 @@ abstract class BaseModel extends Model
     protected static function booted(): void
     {
         static::creating(function (Model $model) {
-            $service = App::make(TenantService::class);
-            if ($tenantId = $service->id()) {
-                $model->tenant_id = $tenantId;
+            $tenantId = App::make(TenantService::class)->id();
+            if (!$tenantId && auth()->check()) {
+                $tenantId = auth()->user()->tenant_id;
             }
+            if (!$tenantId) {
+                throw new \RuntimeException('No se encontró un tenant activo. Inicie sesión en una clínica específica.');
+            }
+            $model->tenant_id = $tenantId;
         });
 
         static::addGlobalScope('tenant', function ($query) {
-            $service = App::make(TenantService::class);
-            if ($tenantId = $service->id()) {
+            $tenantId = App::make(TenantService::class)->id();
+            if ($tenantId) {
                 $query->where($query->getModel()->getTable().'.tenant_id', $tenantId);
             }
         });

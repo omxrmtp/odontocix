@@ -14,11 +14,19 @@ class TenantMiddleware
 
     public function handle(Request $request, Closure $next): Response
     {
-        $tenantId = $request->header('X-Tenant-Id');
+        $tenantId = $request->header('X-Tenant-Id')
+            ?? $request->input('tenant_id');
 
-        if ($tenantId && $tenant = Tenant::find($tenantId)) {
-            $this->tenantService->setCurrent($tenant);
-            $request->merge(['tenant_id' => $tenant->id]);
+        if ($tenantId) {
+            $tenant = Tenant::find($tenantId);
+            if ($tenant) {
+                $this->tenantService->setCurrent($tenant);
+                $request->merge(['tenant_id' => $tenantId]);
+
+                if (class_exists('tenancy') && !tenancy()->initialized) {
+                    tenancy()->initialize($tenant);
+                }
+            }
         }
 
         return $next($request);

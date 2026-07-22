@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      panel: ${{ steps.filter.outputs.panel }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+              - '.github/workflows/api.yml'
+            panel:
+              - 'apps/panel/**'
+              - '.github/workflows/panel.yml'
+
+  api:
+    name: API
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    uses: ./.github/workflows/api.yml
+
+  panel:
+    name: Panel
+    needs: changes
+    if: ${{ needs.changes.outputs.panel == 'true' }}
+    uses: ./.github/workflows/panel.yml

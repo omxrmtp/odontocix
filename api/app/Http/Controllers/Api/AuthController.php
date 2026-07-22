@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Services\TenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,7 +12,20 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function __construct(private TenantService $tenantService) {}
+    private function userResponse(User $user): array
+    {
+        $user->load('roles', 'permissions', 'tenant');
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_active' => $user->is_active,
+            'tenant_id' => $user->tenant_id,
+            'roles' => $user->roles->map(fn ($r) => ['id' => $r->id, 'name' => $r->name])->toArray(),
+            'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+            'tenant' => $user->tenant,
+        ];
+    }
 
     public function register(Request $request): JsonResponse
     {
@@ -49,8 +61,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth')->plainTextToken;
 
         return response()->json([
-            'user' => $user->load('roles'),
-            'tenant' => $tenant,
+            ...$this->userResponse($user),
             'token' => $token,
         ], 201);
     }
@@ -70,10 +81,17 @@ class AuthController extends Controller
             ]);
         }
 
+        // Verificar que el usuario esté activo
+        if (! ($user->is_active ?? true)) {
+            throw ValidationException::withMessages([
+                'email' => ['Tu cuenta ha sido desactivada.'],
+            ]);
+        }
+
         $token = $user->createToken('auth')->plainTextToken;
 
         return response()->json([
-            'user' => $user->load('roles'),
+            ...$this->userResponse($user),
             'token' => $token,
         ]);
     }
@@ -87,6 +105,6 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json($request->user()->load('roles', 'tenant'));
+        return response()->json($this->userResponse($request->user()));
     }
 }

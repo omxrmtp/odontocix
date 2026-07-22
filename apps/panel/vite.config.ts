@@ -9,6 +9,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  optimizeDeps: {
+    exclude: ['@fullcalendar/core', '@fullcalendar/daygrid', '@fullcalendar/interaction'],
+  },
   server: {
     port: 5173,
     proxy: {
