@@ -14,9 +14,9 @@ done
 echo "Running migrations..."
 php artisan migrate --force --no-interaction || echo "WARNING: migrations failed, check DB config"
 
-# Seed roles
-echo "Seeding roles..."
-php artisan db:seed --class=RoleSeeder --force --no-interaction || true
+# Seed all data (roles, admin user, treatments, etc.)
+echo "Seeding database..."
+php artisan db:seed --force --no-interaction || true
 
 # Cache configs
 echo "Caching config..."
