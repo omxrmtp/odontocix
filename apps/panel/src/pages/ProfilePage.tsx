@@ -207,7 +207,7 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Perfil</h1>
       <Tabs defaultValue="profile">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
           <TabsTrigger value="password">Contraseña</TabsTrigger>
           <TabsTrigger value="tenant">Clínica</TabsTrigger>

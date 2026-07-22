@@ -646,7 +646,7 @@ function ClinicDataTab() {
               return
             }
             mutation.mutate(form)
-          }} className="space-y-4 max-w-lg">
+          }} className="space-y-4">
             <div className="space-y-1">
               <Label htmlFor="clinic-name">Nombre</Label>
               <Input id="clinic-name" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
@@ -682,7 +682,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <PageHeader title="Configuración" />
       <Tabs defaultValue="users">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="users">Usuarios</TabsTrigger>
           <TabsTrigger value="roles">Roles y Permisos</TabsTrigger>
           <TabsTrigger value="clinic">Datos de la Clínica</TabsTrigger>
