@@ -1,22 +1,27 @@
 #!/bin/sh
-set -e
+
+echo "=== Starting OdontoCix ==="
+
+# Wait for database (up to 90 seconds)
+echo "Waiting for database..."
+for i in $(seq 1 30); do
+    php artisan db:show > /dev/null 2>&1 && echo "Database connected!" && break
+    echo "  Attempt $i/30 - waiting..."
+    sleep 3
+done
 
 # Run migrations
 echo "Running migrations..."
-php artisan migrate --force --no-interaction
+php artisan migrate --force --no-interaction || echo "WARNING: migrations failed, check DB config"
 
-# Seed roles if needed
+# Seed roles
 echo "Seeding roles..."
 php artisan db:seed --class=RoleSeeder --force --no-interaction || true
 
-# Clear and cache configs
+# Cache configs
 echo "Caching config..."
 php artisan config:cache --no-interaction || true
-
-echo "Caching routes..."
 php artisan route:cache --no-interaction || true
-
-echo "Caching views..."
 php artisan view:cache --no-interaction || true
 
 echo "Starting services..."
