@@ -18,7 +18,7 @@ RUN apk add --no-cache \
     linux-headers \
     $PHPIZE_DEPS
 
-# Install PHP extensions (all that Laravel needs)
+# Install PHP extensions
 RUN docker-php-ext-install \
     pdo_pgsql \
     pgsql \
@@ -36,27 +36,32 @@ RUN docker-php-ext-install \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
 WORKDIR /var/www
 
-# Copy full application code first
-COPY api/ /var/www/
+# Copy composer files first (for layer caching)
+COPY api/composer.json api/composer.lock ./
 
-RUN ls -la /var/www/public/
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --no-autoloader || \
+    composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --no-autoloader --ignore-platform-reqs
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts || \
-    composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-reqs
+# Copy the rest of the application
+COPY api/ .
 
-# Copy nginx, supervisor, and php-fpm configs
+# Generate autoloader
+RUN composer dump-autoload --optimize --no-interaction
+
+# Remove default php-fpm configs and use ours
+RUN rm -f /usr/local/etc/php-fpm.d/*
+
+# Copy infrastructure configs
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-RUN rm -f /usr/local/etc/php-fpm.d/*
 COPY docker/php-fpm-www.conf /usr/local/etc/php-fpm.d/zz-docker.conf
 COPY docker/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 
-# Create necessary directories and set permissions
+# Create directories and set permissions
 RUN mkdir -p storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
@@ -68,21 +73,14 @@ RUN mkdir -p storage/framework/cache/data \
     && chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache
 
-# Generate autoload files and optimize
-RUN composer dump-autoload --optimize --no-interaction || true
+# Verify critical files exist
+RUN test -f /var/www/public/index.php || (echo "ERROR: public/index.php missing" && exit 1) && \
+    test -f /var/www/vendor/autoload.php || (echo "ERROR: vendor/autoload.php missing" && exit 1) && \
+    echo "Build OK: all critical files present"
 
-# Set proper ownership for the entire app
-RUN chown -R www-data:www-data /var/www
-
-# Verify public/index.php exists
-RUN test -f /var/www/public/index.php || (echo "ERROR: public/index.php not found" && exit 1)
-
-# Health check endpoint
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:80/health || exit 1
 
-# Expose port
 EXPOSE 80
 
-# Start via the start script (runs migrations then starts supervisor)
 CMD ["/usr/local/bin/start.sh"]

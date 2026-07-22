@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', fn () => response()->json([
+    'app' => 'OdontoCix API',
+    'version' => '1.0.0',
+    'status' => 'running',
+]));
