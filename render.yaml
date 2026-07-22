@@ -17,15 +17,45 @@ services:
         value: "false"
       - key: APP_URL
         value: https://odontocix-api.onrender.com
+      - key: APP_LOCALE
+        value: es
+      - key: APP_FALLBACK_LOCALE
+        value: es
+      - key: APP_FAKER_LOCALE
+        value: es_PE
+      - key: BCRYPT_ROUNDS
+        value: "12"
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_STACK
+        value: single
+      - key: LOG_DEPRECATIONS_CHANNEL
+        value: "null"
+      - key: LOG_LEVEL
+        value: warning
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_URL
-        sync: false  # Set manually in Render dashboard
+        sync: false  # Set manually in Render dashboard with your Neon DB URL
       - key: SESSION_DRIVER
         value: database
-      - key: CACHE_STORE
-        value: database
+      - key: SESSION_LIFETIME
+        value: "120"
+      - key: SESSION_ENCRYPT
+        value: "false"
+      - key: SESSION_PATH
+        value: /
+      - key: SESSION_DOMAIN
+        value: "null"
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: BROADCAST_CONNECTION
+        value: log
+      - key: FILESYSTEM_DISK
+        value: local
       - key: QUEUE_CONNECTION
+        value: database
+      - key: CACHE_STORE
         value: database
       - key: MAIL_MAILER
         value: resend
@@ -58,14 +88,9 @@ services:
       - key: DEMO_ADMIN_EMAIL
         value: admin@odontocix.com
       - key: DEMO_ADMIN_PASSWORD
-        sync: false  # Set manually in Render dashboard (strong password)
-    buildCommand: |
-      composer install --no-dev --optimize-autoloader
-      php artisan config:cache
-      php artisan route:cache
-      php artisan view:cache
-      php artisan migrate --force
-      php artisan db:seed --class=RoleSeeder --force
+        sync: false  # Set manually in Render dashboard (use strong password)
+    buildCommand: ""  # Docker build handles everything
+    startCommand: sh docker/start.sh
     healthCheckPath: /health
     numInstances: 1
     plan: starter

@@ -13,9 +13,12 @@ RUN apk add --no-cache \
     curl \
     oniguruma-dev \
     libxml2-dev \
-    gettext-dev
+    gettext-dev \
+    icu-dev \
+    linux-headers \
+    $PHPIZE_DEPS
 
-# Install PHP extensions
+# Install PHP extensions (all that Laravel needs)
 RUN docker-php-ext-install \
     pdo_pgsql \
     pgsql \
@@ -25,7 +28,10 @@ RUN docker-php-ext-install \
     bcmath \
     gd \
     zip \
-    opcache
+    opcache \
+    intl \
+    xml \
+    dom
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -33,17 +39,18 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
-# Copy composer files first (for layer caching)
-COPY api/composer.json api/composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
-
-# Copy application code
+# Copy full application code first
 COPY api/ .
 
-# Copy nginx config
-COPY docker/nginx.conf /etc/nginx/nginx.conf
+# Install PHP dependencies
+# --no-dev: sin dependencias de desarrollo
+# --optimize-autoloader: autoloader más rápido
+# --no-interaction: sin prompts interactivos
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts || \
+    composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-reqs
 
-# Copy supervisor config
+# Copy nginx and supervisor configs
+COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create necessary directories and set permissions
@@ -53,22 +60,23 @@ RUN mkdir -p storage/framework/cache/data \
     storage/framework/testing \
     storage/logs \
     storage/app/public \
+    storage/app/private \
     bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
+    && chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache
 
-# Run composer scripts and optimize
-RUN composer run-script post-autoload-dump --no-interaction || true
-RUN php artisan config:cache --no-interaction || true
-RUN php artisan route:cache --no-interaction || true
-RUN php artisan view:cache --no-interaction || true
+# Generate autoload files and optimize
+RUN composer dump-autoload --optimize --no-interaction || true
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+# Set proper ownership for the entire app
+RUN chown -R www-data:www-data /var/www
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:80/health || exit 1
 
 # Expose port
 EXPOSE 80
 
-# Start supervisor (manages nginx + php-fpm)
+# Start supervisor (manages nginx + php-fpm + queue worker)
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
