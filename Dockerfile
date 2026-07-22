@@ -43,15 +43,15 @@ WORKDIR /var/www
 COPY api/ .
 
 # Install PHP dependencies
-# --no-dev: sin dependencias de desarrollo
-# --optimize-autoloader: autoloader más rápido
-# --no-interaction: sin prompts interactivos
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts || \
     composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --ignore-platform-reqs
 
-# Copy nginx and supervisor configs
+# Copy nginx, supervisor, and php-fpm configs
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/php-fpm-www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 
 # Create necessary directories and set permissions
 RUN mkdir -p storage/framework/cache/data \
@@ -71,6 +71,9 @@ RUN composer dump-autoload --optimize --no-interaction || true
 # Set proper ownership for the entire app
 RUN chown -R www-data:www-data /var/www
 
+# Verify public/index.php exists
+RUN test -f /var/www/public/index.php || (echo "ERROR: public/index.php not found" && exit 1)
+
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:80/health || exit 1
@@ -78,5 +81,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 # Expose port
 EXPOSE 80
 
-# Start supervisor (manages nginx + php-fpm + queue worker)
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Start via the start script (runs migrations then starts supervisor)
+CMD ["/usr/local/bin/start.sh"]
