@@ -49,7 +49,8 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 # Copy nginx, supervisor, and php-fpm configs
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY docker/php-fpm-www.conf /usr/local/etc/php-fpm.d/www.conf
+RUN rm -f /usr/local/etc/php-fpm.d/*
+COPY docker/php-fpm-www.conf /usr/local/etc/php-fpm.d/zz-docker.conf
 COPY docker/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 
