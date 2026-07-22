@@ -34,7 +34,7 @@ services:
       - key: MAIL_FROM_NAME
         value: OdontoCix
       - key: SANCTUM_STATEFUL_DOMAINS
-        value: odontocix.onrender.com,odontocix-api.onrender.com
+        value: odontocix.onrender.com,odontocix-api.onrender.com,www.odontocix.onrender.com
       - key: FRONTEND_URL
         value: https://odontocix.onrender.com
       - key: RENIEC_API_URL
@@ -72,7 +72,7 @@ services:
 
   # Frontend (React Static Site)
   - type: static
-    name: odontocix-panel
+    name: odontocix
     runtime: static
     repo: https://github.com/omxrmtp/odontocix.git
     branch: main
@@ -86,6 +86,30 @@ services:
       - type: rewrite
         source: /api/*
         destination: https://odontocix-api.onrender.com/api/$1
+      - type: rewrite
+        source: /portal/*
+        destination: https://odontocix-api.onrender.com/portal/$1
+      - type: rewrite
+        source: /online-booking/*
+        destination: https://odontocix-api.onrender.com/online-booking/$1
+      - type: rewrite
+        source: /pdf/*
+        destination: https://odontocix-api.onrender.com/pdf/$1
+      - type: rewrite
+        source: /auth/*
+        destination: https://odontocix-api.onrender.com/auth/$1
+      - type: rewrite
+        source: /dashboard/*
+        destination: https://odontocix-api.onrender.com/dashboard/$1
+      - type: rewrite
+        source: /reniec/*
+        destination: https://odontocix-api.onrender.com/reniec/$1
+      - type: rewrite
+        source: /profile/*
+        destination: https://odontocix-api.onrender.com/profile/$1
+      - type: rewrite
+        source: /tenant/*
+        destination: https://odontocix-api.onrender.com/tenant/$1
       - type: rewrite
         source: /*
         destination: /index.html
