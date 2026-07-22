@@ -24,8 +24,11 @@ class TenantMiddleware
                 $request->merge(['tenant_id' => $tenantId]);
 
                 if (class_exists('tenancy') && !tenancy()->initialized) {
+                    $request->attributes->set('_tenant_initialized', true);
                     tenancy()->initialize($tenant);
                 }
+            } else {
+                \Log::warning('TenantMiddleware: tenant_id provided but not found', ['tenant_id' => $tenantId, 'uri' => $request->path()]);
             }
         }
 

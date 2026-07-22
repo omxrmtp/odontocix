@@ -27,6 +27,56 @@ use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/debug/user-check', function (Illuminate\Http\Request $request) {
+    $email = $request->query('email', 'admin@odontocix.com');
+    $appKey = config('app.key') ? 'SET' : 'MISSING';
+    $dbDefault = config('database.default');
+    $dbUrl = config('database.connections.pgsql.url');
+    $dbUrlSnippet = $dbUrl ? substr($dbUrl, 0, 40) . '...' : 'NULL';
+    $driverName = config("database.connections.{$dbDefault}.driver");
+    $configCached = file_exists(base_path('bootstrap/cache/config.php'));
+
+    $user = \App\Models\User::where('email', $email)->first();
+
+    $result = [
+        'config_cached' => $configCached,
+        'db_default' => $dbDefault,
+        'db_driver' => $driverName,
+        'db_url' => $dbUrlSnippet,
+        'app_key' => $appKey,
+        'email_searched' => $email,
+        'user_found' => $user ? true : false,
+    ];
+
+    if ($user) {
+        $result['user_id'] = $user->id;
+        $result['user_email'] = $user->email;
+        $result['user_tenant_id'] = $user->tenant_id;
+        $result['hash_prefix'] = substr($user->password, 0, 7);
+        $result['hash_check'] = \Illuminate\Support\Facades\Hash::check('admin123456', $user->password);
+        $result['user_roles'] = $user->getRoleNames()->toArray();
+    }
+
+    return response()->json($result);
+});
+
+Route::get('/debug/db-connections', function () {
+    $connections = config('database.connections');
+    $result = [];
+    foreach ($connections as $name => $conn) {
+        $result[$name] = [
+            'driver' => $conn['driver'] ?? 'N/A',
+            'url' => isset($conn['url']) ? ($conn['url'] ? 'SET' : 'NULL') : 'N/A',
+            'host' => $conn['host'] ?? 'N/A',
+            'database' => $conn['database'] ?? 'N/A',
+        ];
+    }
+    return response()->json([
+        'default' => config('database.default'),
+        'connections' => $result,
+    ]);
+});
+
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
