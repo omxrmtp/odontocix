@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class SuperAdminSeeder extends Seeder
 {
@@ -22,11 +21,11 @@ class SuperAdminSeeder extends Seeder
             ]
         );
 
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => env('DEMO_ADMIN_EMAIL', 'admin@odontocix.com')],
             [
                 'name' => 'Super Admin',
-                'password' => Hash::make(env('DEMO_ADMIN_PASSWORD', 'admin123456')),
+                'password' => env('DEMO_ADMIN_PASSWORD', 'admin123456'),
                 'tenant_id' => $tenant->id,
             ]
         )->assignRole('Super Admin');
