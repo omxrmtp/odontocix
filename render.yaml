@@ -1,7 +1,7 @@
 services:
-  # Backend API (Laravel)
+  # Single service: Backend API + Frontend SPA
   - type: web
-    name: odontocix-api
+    name: odontocix
     runtime: docker
     repo: https://github.com/omxrmtp/odontocix.git
     branch: main
@@ -16,7 +16,7 @@ services:
       - key: APP_DEBUG
         value: "false"
       - key: APP_URL
-        value: https://odontocix-api.onrender.com
+        value: https://odontocix.onrender.com
       - key: APP_LOCALE
         value: es
       - key: APP_FALLBACK_LOCALE
@@ -36,7 +36,7 @@ services:
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_URL
-        sync: false  # Set manually in Render dashboard with your Neon DB URL
+        sync: false
       - key: SESSION_DRIVER
         value: database
       - key: SESSION_LIFETIME
@@ -64,76 +64,32 @@ services:
       - key: MAIL_FROM_NAME
         value: OdontoCix
       - key: SANCTUM_STATEFUL_DOMAINS
-        value: odontocix.onrender.com,odontocix-api.onrender.com,www.odontocix.onrender.com
+        value: odontocix.onrender.com,www.odontocix.onrender.com
       - key: FRONTEND_URL
         value: https://odontocix.onrender.com
       - key: RENIEC_API_URL
         value: https://api.decolecta.com/v1/reniec/dni
       - key: RENIEC_API_TOKEN
-        sync: false  # Set manually in Render dashboard
+        sync: false
       - key: RESEND_API_KEY
-        sync: false  # Set manually in Render dashboard
+        sync: false
       - key: SANCTUM_TOKEN_EXPIRATION
         value: "10080"
       - key: DEMO_TENANT_EMAIL
         value: demo@odontocix.com
       - key: DEMO_TENANT_NAME
-        value: "Clínica Demo"
+        value: "Clinica Demo"
       - key: DEMO_TENANT_RUC
         value: "12345678901"
       - key: DEMO_TENANT_PHONE
         value: "999000000"
       - key: DEMO_TENANT_ADDRESS
-        value: "Av. Demostración 123"
+        value: "Av. Demostracion 123"
       - key: DEMO_ADMIN_EMAIL
         value: admin@odontocix.com
       - key: DEMO_ADMIN_PASSWORD
-        sync: false  # Set manually in Render dashboard (use strong password)
-    buildCommand: ""  # Docker build handles everything
+        sync: false
+    buildCommand: ""
     healthCheckPath: /health
     numInstances: 1
     plan: starter
-
-  # Frontend (React Static Site)
-  - type: static
-    name: odontocix
-    runtime: static
-    repo: https://github.com/omxrmtp/odontocix.git
-    branch: main
-    rootDir: apps/panel
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_API_URL
-        value: https://odontocix-api.onrender.com
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://odontocix-api.onrender.com/api/$1
-      - type: rewrite
-        source: /portal/*
-        destination: https://odontocix-api.onrender.com/portal/$1
-      - type: rewrite
-        source: /online-booking/*
-        destination: https://odontocix-api.onrender.com/online-booking/$1
-      - type: rewrite
-        source: /pdf/*
-        destination: https://odontocix-api.onrender.com/pdf/$1
-      - type: rewrite
-        source: /auth/*
-        destination: https://odontocix-api.onrender.com/auth/$1
-      - type: rewrite
-        source: /dashboard/*
-        destination: https://odontocix-api.onrender.com/dashboard/$1
-      - type: rewrite
-        source: /reniec/*
-        destination: https://odontocix-api.onrender.com/reniec/$1
-      - type: rewrite
-        source: /profile/*
-        destination: https://odontocix-api.onrender.com/profile/$1
-      - type: rewrite
-        source: /tenant/*
-        destination: https://odontocix-api.onrender.com/tenant/$1
-      - type: rewrite
-        source: /*
-        destination: /index.html

@@ -4,10 +4,10 @@
 
 .env
 .env.*
-!.env.production.example
 
-apps/
 node_modules/
+apps/*/node_modules/
+apps/*/dist/
 
 api/vendor/
 api/tests/
@@ -22,6 +22,5 @@ api/.phpunit.result.cache
 Thumbs.db
 
 *.md
-!README.md
 
 render-env.txt

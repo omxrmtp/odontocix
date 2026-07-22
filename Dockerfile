@@ -1,6 +1,21 @@
+# ============================================
+# Stage 1: Build React frontend
+# ============================================
+FROM node:20-alpine AS frontend
+
+WORKDIR /app
+
+COPY apps/panel/package.json apps/panel/package-lock.json ./
+RUN npm ci
+
+COPY apps/panel/ .
+RUN npm run build
+
+# ============================================
+# Stage 2: PHP-FPM + Nginx backend
+# ============================================
 FROM php:8.4-fpm-alpine
 
-# Install system dependencies
 RUN apk add --no-cache \
     nginx \
     supervisor \
@@ -18,7 +33,6 @@ RUN apk add --no-cache \
     linux-headers \
     $PHPIZE_DEPS
 
-# Install PHP extensions
 RUN docker-php-ext-install \
     pdo_pgsql \
     pgsql \
@@ -33,25 +47,23 @@ RUN docker-php-ext-install \
     xml \
     dom
 
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copy composer files first (for layer caching)
+# Copy composer files first (layer caching)
 COPY api/composer.json api/composer.lock ./
-
-# Install dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --no-autoloader || \
     composer install --no-dev --optimize-autoloader --no-interaction --no-scripts --no-autoloader --ignore-platform-reqs
 
-# Copy the rest of the application
+# Copy full Laravel app
 COPY api/ .
-
-# Generate autoloader
 RUN composer dump-autoload --optimize --no-interaction
 
-# Remove default php-fpm configs and use ours
+# Copy built React frontend
+COPY --from=frontend /app/dist /var/www/frontend/dist
+
+# Remove default php-fpm configs, use ours
 RUN rm -f /usr/local/etc/php-fpm.d/*
 
 # Copy infrastructure configs
@@ -73,10 +85,11 @@ RUN mkdir -p storage/framework/cache/data \
     && chown -R www-data:www-data /var/www \
     && chmod -R 775 storage bootstrap/cache
 
-# Verify critical files exist
+# Verify critical files
 RUN test -f /var/www/public/index.php || (echo "ERROR: public/index.php missing" && exit 1) && \
     test -f /var/www/vendor/autoload.php || (echo "ERROR: vendor/autoload.php missing" && exit 1) && \
-    echo "Build OK: all critical files present"
+    test -f /var/www/frontend/dist/index.html || (echo "ERROR: frontend index.html missing" && exit 1) && \
+    echo "Build OK"
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:80/health || exit 1
