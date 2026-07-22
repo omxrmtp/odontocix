@@ -15,8 +15,18 @@ import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { availableSlotsApi, doctorsApi } from '@/lib/endpoints'
 import ConfirmDialog from '@/components/app/ConfirmDialog'
-import { CalendarDays, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CalendarDays, Trash2, Plus, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { usePermission } from '@/hooks/usePermission'
+
+const WEEKDAYS = [
+  { value: 1, label: 'Lun' },
+  { value: 2, label: 'Mar' },
+  { value: 3, label: 'Mié' },
+  { value: 4, label: 'Jue' },
+  { value: 5, label: 'Vie' },
+  { value: 6, label: 'Sáb' },
+  { value: 0, label: 'Dom' },
+]
 
 export default function AvailableSlotsPage() {
   const queryClient = useQueryClient()
@@ -35,6 +45,20 @@ export default function AvailableSlotsPage() {
     end_time: '18:00',
     duration_minutes: '30',
   })
+  const [weekdays, setWeekdays] = useState([1, 2, 3, 4, 5])
+
+  const toggleWeekday = (day: number) => {
+    setWeekdays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])
+  }
+
+  const setTimePreset = (preset: 'morning' | 'afternoon' | 'full') => {
+    const presets = {
+      morning: { start_time: '09:00', end_time: '12:00' },
+      afternoon: { start_time: '14:00', end_time: '18:00' },
+      full: { start_time: '09:00', end_time: '18:00' },
+    }
+    setForm(f => ({ ...f, ...presets[preset] }))
+  }
 
   const { data: doctors, isPending: loadingDoctors } = useQuery({
     queryKey: ['doctors-list'],
@@ -93,6 +117,7 @@ export default function AvailableSlotsPage() {
       start_time: form.start_time,
       end_time: form.end_time,
       duration_minutes: Number(form.duration_minutes),
+      weekdays: weekdays.join(','),
     })
   }
 
@@ -239,7 +264,7 @@ export default function AvailableSlotsPage() {
           <DialogHeader>
             <DialogTitle>Crear horarios</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="space-y-1">
               <Label>Doctor</Label>
               <Select value={form.doctor_id} onValueChange={(v) => setForm((f) => ({ ...f, doctor_id: v }))}>
@@ -255,6 +280,31 @@ export default function AvailableSlotsPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label>Días de la semana</Label>
+              <div className="flex gap-2">
+                {WEEKDAYS.map((d) => (
+                  <label
+                    key={d.value}
+                    className={`flex items-center justify-center w-10 h-10 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                      weekdays.includes(d.value)
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-muted-foreground border-input hover:bg-muted/50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={weekdays.includes(d.value)}
+                      onChange={() => toggleWeekday(d.value)}
+                      className="sr-only"
+                    />
+                    {d.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label>Fecha inicio</Label>
@@ -265,18 +315,34 @@ export default function AvailableSlotsPage() {
                 <Input type="date" value={form.end_date} onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label>Hora inicio</Label>
-                <Input type="time" value={form.start_time} onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))} />
+
+            <div className="space-y-1">
+              <Label>Rango de horas</Label>
+              <div className="flex gap-2 mb-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setTimePreset('morning')} className="flex-1">
+                  <Clock className="h-3 w-3 mr-1" /> Mañana
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setTimePreset('afternoon')} className="flex-1">
+                  <Clock className="h-3 w-3 mr-1" /> Tarde
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setTimePreset('full')} className="flex-1">
+                  Completo
+                </Button>
               </div>
-              <div className="space-y-1">
-                <Label>Hora fin</Label>
-                <Input type="time" value={form.end_time} onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))} />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Inicio</Label>
+                  <Input type="time" value={form.start_time} onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Fin</Label>
+                  <Input type="time" value={form.end_time} onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))} />
+                </div>
               </div>
             </div>
+
             <div className="space-y-1">
-              <Label>Duración (minutos)</Label>
+              <Label>Duración por cita</Label>
               <Select value={form.duration_minutes} onValueChange={(v) => setForm((f) => ({ ...f, duration_minutes: v }))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -289,8 +355,9 @@ export default function AvailableSlotsPage() {
                 </SelectContent>
               </Select>
             </div>
+
             <Button variant="outline" className="w-full" onClick={handleGenerateWeek}>
-              <CalendarDays className="h-4 w-4 mr-1" /> Generar semana
+              <CalendarDays className="h-4 w-4 mr-1" /> Generar semana (lun-vie)
             </Button>
           </div>
           <DialogFooter className="gap-2">

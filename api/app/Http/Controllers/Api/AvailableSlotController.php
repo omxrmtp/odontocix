@@ -56,8 +56,14 @@ class AvailableSlotController extends Controller
 
         $created = [];
 
-        DB::transaction(function () use ($doctorId, $startDate, $endDate, $startTime, $endTime, $duration, &$created) {
+        DB::transaction(function () use ($doctorId, $startDate, $endDate, $startTime, $endTime, $duration, $request, &$created) {
+            $weekdays = $request->input('weekdays');
+            $weekdayArray = $weekdays ? array_map('intval', explode(',', $weekdays)) : null;
+
             for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+                if ($weekdayArray !== null && !in_array($date->dayOfWeek, $weekdayArray)) {
+                    continue;
+                }
                 $current = $startTime->copy();
                 while ($current->lt($endTime)) {
                     $slotStart = $current->format('H:i:s');

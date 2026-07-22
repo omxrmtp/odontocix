@@ -32,7 +32,7 @@ export default function AppointmentsPage() {
   const [editId, setEditId] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
   const [form, setForm] = useState({
-    patient_id: '', doctor_id: '', start_date: '', end_date: '',
+    patient_id: '', doctor_id: '', start_date: '', duration: '30',
     reason: '', status: 'scheduled',
   })
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null)
@@ -95,18 +95,28 @@ export default function AppointmentsPage() {
     extendedProps: a,
   }))
 
+  const computeEndDate = (start: string, durationMin: number): string => {
+    const d = new Date(start)
+    if (isNaN(d.getTime())) return ''
+    d.setMinutes(d.getMinutes() + durationMin)
+    return d.toISOString().slice(0, 16)
+  }
+
   useEffect(() => {
-    if (!calendarRef.current || calendarInstance.current) return
-    const isMobile = window.innerWidth < 768
+    if (loading || !calendarRef.current) return
+    if (calendarInstance.current) {
+      calendarInstance.current.destroy()
+    }
     const cal = new Calendar(calendarRef.current, {
       plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
-      initialView: isMobile ? 'listWeek' : 'dayGridMonth',
+      initialView: 'dayGridMonth',
       locale: 'es',
       height: 'auto',
+      noEventsText: 'Sin eventos',
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
-        right: isMobile ? 'listWeek' : 'dayGridMonth,dayGridWeek,dayGridDay',
+        right: 'dayGridMonth,dayGridWeek,dayGridDay,listWeek',
       },
       buttonText: {
         today: 'Hoy',
@@ -115,22 +125,15 @@ export default function AppointmentsPage() {
         day: 'Día',
         list: 'Lista',
       },
-      windowResize: (view) => {
-        if (window.innerWidth < 768) {
-          cal.changeView('listWeek')
-          cal.setOption('headerToolbar', {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'listWeek',
-          })
-        } else {
-          cal.changeView('dayGridMonth')
-          cal.setOption('headerToolbar', {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,dayGridWeek,dayGridDay',
-          })
-        }
+      dateClick: (info) => {
+        if (!canEditRef.current) return
+        const startStr = info.allDay ? `${info.dateStr}T09:00` : info.dateStr.slice(0, 16)
+        const endStr = computeEndDate(startStr, 30)
+        setEditId(null)
+        setSelectedAppointment(null)
+        setWaLinks(null)
+        setForm({ patient_id: '', doctor_id: '', start_date: startStr, duration: '30', reason: '', status: 'scheduled' })
+        setDialogOpen(true)
       },
       eventClick: (info) => {
         if (!canEditRef.current) return
@@ -140,7 +143,7 @@ export default function AppointmentsPage() {
     cal.render()
     calendarInstance.current = cal
     return () => { cal.destroy(); calendarInstance.current = null }
-  }, [])
+  }, [loading])
 
   useEffect(() => {
     if (calendarInstance.current) {
@@ -151,18 +154,24 @@ export default function AppointmentsPage() {
 
   const openNew = () => {
     setEditId(null)
-    setForm({ patient_id: '', doctor_id: '', start_date: '', end_date: '', reason: '', status: 'scheduled' })
+    setSelectedAppointment(null)
+    setWaLinks(null)
+    const start = new Date().toISOString().slice(0, 16)
+    setForm({ patient_id: '', doctor_id: '', start_date: start, duration: '30', reason: '', status: 'scheduled' })
     setDialogOpen(true)
   }
 
   const openEdit = (app: any) => {
     setEditId(app.id)
     setSelectedAppointment(app)
+    const start = app.start_date?.slice(0, 16) ?? ''
+    const end = app.end_date?.slice(0, 16) ?? ''
+    const dur = start && end ? String(Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000)) : '30'
     setForm({
       patient_id: String(app.patient_id),
       doctor_id: String(app.doctor_id ?? ''),
-      start_date: app.start_date?.slice(0, 16) ?? '',
-      end_date: app.end_date?.slice(0, 16) ?? '',
+      start_date: start,
+      duration: dur,
       reason: app.reason ?? '',
       status: app.status,
     })
@@ -177,11 +186,12 @@ export default function AppointmentsPage() {
     if (!form.patient_id) return toast.error('Paciente es requerido')
     if (!form.doctor_id) return toast.error('Doctor es requerido')
     if (!form.start_date) return toast.error('Fecha de inicio es requerida')
+    const endDate = computeEndDate(form.start_date, Number(form.duration) || 30)
     const data = {
       patient_id: Number(form.patient_id),
       doctor_id: form.doctor_id ? Number(form.doctor_id) : null,
       start_date: form.start_date,
-      end_date: form.end_date || null,
+      end_date: endDate || null,
       reason: form.reason,
       status: form.status,
     }
@@ -236,8 +246,23 @@ export default function AppointmentsPage() {
               <Input type="datetime-local" value={form.start_date} onChange={(e) => setForm(p => ({ ...p, start_date: e.target.value }))} />
             </div>
             <div className="space-y-1">
-              <Label>Fin</Label>
-              <Input type="datetime-local" value={form.end_date} onChange={(e) => setForm(p => ({ ...p, end_date: e.target.value }))} />
+              <Label>Duración</Label>
+              <div className="flex gap-2 items-center">
+                <Select value={form.duration} onValueChange={(v) => setForm(p => ({ ...p, duration: v }))}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 min</SelectItem>
+                    <SelectItem value="30">30 min</SelectItem>
+                    <SelectItem value="45">45 min</SelectItem>
+                    <SelectItem value="60">60 min</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  Fin: {form.start_date ? new Date(computeEndDate(form.start_date, Number(form.duration) || 30)).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                </span>
+              </div>
             </div>
             <div className="space-y-1">
               <Label>Motivo</Label>
