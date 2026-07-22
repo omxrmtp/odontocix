@@ -1,30 +1,49 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Dependencies
 node_modules/
 vendor/
-.env
-.env.local
-.env.production
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs
 *.log
+npm-debug.log*
+yarn-error.log*
+
+# Build artifacts
 /dist
 /build
+/public/build
+/public/hot
+
+# IDEs
 /.idea
+/.vscode
+*.swp
+*.swo
+*~
+
+# Databases
 *.sqlite
 /database/tenant*
 /database/*.sqlite
+
+# Laravel storage
 /storage/framework/cache/data/*
 !/storage/framework/cache/data/.gitkeep
 /storage/framework/sessions/*
 !/storage/framework/sessions/.gitkeep
 /storage/framework/views/*
 !/storage/framework/views/.gitkeep
-public/hot
 public/storage
 storage/*.key
+
+# PHP
 .phpunit.result.cache
 composer.phar
-npm-debug.log*
-yarn-error.log*
-*.bak
-*.swp
-*.swo
-*~

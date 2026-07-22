@@ -1,31 +1,52 @@
-*.log
-.DS_Store
+# Environment files
 .env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.codex
-/.cursor/
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
-/node_modules
+.env.*
+
+# Dependencies
+vendor/
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+.zed/
+.codex/
+.cursor/
+.nova/
+.phpunit.cache/
+
+# Build artifacts
 /public/build
-/public/fonts-manifest.dev.json
 /public/hot
 /public/storage
+
+# Storage
 /storage/*.key
 /storage/pail
-/vendor
+/storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+/storage/app/public/*
+!/storage/app/public/.gitkeep
+
+# Databases (runtime)
+/database/tenant*
+/database/*.sqlite
+
+# Cache
+bootstrap/cache/*.php
+.phpunit.result.cache
+
+# Misc
+*.log
+.DS_Store
+Thumbs.db
 _ide_helper.php
 Homestead.json
 Homestead.yaml
-Thumbs.db
-
-# Tenant databases (created at runtime)
-/database/tenant*
-/database/*.sqlite
+auth.json
