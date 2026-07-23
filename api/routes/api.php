@@ -80,7 +80,7 @@ Route::get('/debug/db-connections', function () {
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
-Route::prefix('portal')->group(function () {
+Route::prefix('api/portal')->group(function () {
     Route::get('/patient/{token}', [PatientPortalController::class, 'patient']);
     Route::get('/patient/{token}/appointments', [PatientPortalController::class, 'appointments']);
     Route::get('/patient/{token}/history', [PatientPortalController::class, 'history']);

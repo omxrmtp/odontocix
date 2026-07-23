@@ -123,17 +123,17 @@ export function downloadPatientHistory(id: number): Promise<Blob> {
 
 export const portalApi = {
   patient: (token: string) =>
-    api.get(`/portal/patient/${token}`).then(r => r.data),
+    api.get(`/api/portal/patient/${token}`).then(r => r.data),
   appointments: (token: string) =>
-    api.get(`/portal/patient/${token}/appointments`).then(r => r.data),
+    api.get(`/api/portal/patient/${token}/appointments`).then(r => r.data),
   history: (token: string) =>
-    api.get(`/portal/patient/${token}/history`).then(r => r.data),
+    api.get(`/api/portal/patient/${token}/history`).then(r => r.data),
   budgets: (token: string) =>
-    api.get(`/portal/patient/${token}/budgets`).then(r => r.data),
+    api.get(`/api/portal/patient/${token}/budgets`).then(r => r.data),
 }
 
 export function downloadPortalHistoryPdf(token: string): Promise<Blob> {
-  return downloadPdf(`/portal/patient/${token}/history/pdf`)
+  return downloadPdf(`/api/portal/patient/${token}/history/pdf`)
 }
 
 export const recordsApi = {

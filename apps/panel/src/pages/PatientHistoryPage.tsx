@@ -27,7 +27,7 @@ export default function PatientHistoryPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { canEdit } = usePermission()
-  const canEditHistory = canEdit('historia')
+  const canEditHistory = canEdit('pacientes')
 
   const [tab, setTab] = useState<'records' | 'treatments' | 'odontogram'>('records')
   const [recordDialog, setRecordDialog] = useState(false)
@@ -346,7 +346,7 @@ export default function PatientHistoryPage() {
             <OdontogramComponent
               data={teethData}
               onUpdate={(fdiCode, data) => {
-                updateTooth.mutate({ fdi: fdiCode, status: data.status ?? 'sano', notes: data.notes ?? '' })
+                updateTooth.mutate({ fdi: fdiCode, status: data.status ?? 'sano', notes: data.notes ?? '', surface: data.surface ?? null })
               }}
               readOnly={!canEditHistory}
             />
