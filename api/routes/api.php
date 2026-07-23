@@ -94,6 +94,23 @@ Route::get('/debug/pdf-test', function () {
     }
 });
 
+Route::get('/debug/pdf-test-view', function () {
+    try {
+        $pdf = Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.test', [
+            'title' => 'Test de vista',
+            'content' => 'Si ves esto, loadView funciona correctamente.',
+        ]);
+        return $pdf->download('test-view.pdf');
+    } catch (\Throwable $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'class' => get_class($e),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ], 500);
+    }
+});
+
 Route::prefix('portal')->group(function () {
     Route::get('/patient/{token}', [PatientPortalController::class, 'patient']);
     Route::put('/patient/{token}', [PatientPortalController::class, 'updatePatient']);

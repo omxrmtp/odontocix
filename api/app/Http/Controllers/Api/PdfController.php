@@ -8,63 +8,75 @@ use App\Models\ConsentForm;
 use App\Models\Patient;
 use App\Models\Payment;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 class PdfController extends Controller
 {
-    public function budgetPdf(Budget $budget): Response
+    private function loadPdf(string $view, array $data, string $filename): Response|JsonResponse
+    {
+        try {
+            $pdf = Pdf::loadView($view, $data);
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => false]);
+            return $pdf->download($filename);
+        } catch (\Throwable $e) {
+            Log::error("PDF generation failed [{$view}]: {$e->getMessage()}", [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'Error al generar el PDF. Intente nuevamente o contacte al administrador.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function budgetPdf(Budget $budget): Response|JsonResponse
     {
         $budget->load(['items.treatment', 'patient']);
-
         $tenant = auth()->user()->tenant;
 
-        $pdf = Pdf::loadView('pdf.budget', [
+        return $this->loadPdf('pdf.budget', [
             'budget' => $budget,
             'tenant' => $tenant,
             'patient' => $budget->patient,
             'items' => $budget->items,
-        ]);
-
-        return $pdf->download("presupuesto-{$budget->id}.pdf");
+        ], "presupuesto-{$budget->id}.pdf");
     }
 
-    public function paymentReceipt(Payment $payment): Response
+    public function paymentReceipt(Payment $payment): Response|JsonResponse
     {
         $payment->load(['budget.items', 'patient']);
-
         $tenant = auth()->user()->tenant;
 
-        $pdf = Pdf::loadView('pdf.receipt', [
+        return $this->loadPdf('pdf.receipt', [
             'payment' => $payment,
             'tenant' => $tenant,
             'patient' => $payment->patient,
             'budget' => $payment->budget,
-        ]);
-
-        return $pdf->download("recibo-{$payment->id}.pdf");
+        ], "recibo-{$payment->id}.pdf");
     }
 
-    public function patientHistory(Patient $patient): Response
+    public function patientHistory(Patient $patient): Response|JsonResponse
     {
         $patient->load(['clinicalRecords.doctor', 'treatments.treatment', 'teethRecords']);
-
         $tenant = auth()->user()->tenant;
 
-        $pdf = Pdf::loadView('pdf.history', [
+        return $this->loadPdf('pdf.history', [
             'patient' => $patient,
             'tenant' => $tenant,
             'clinicalRecords' => $patient->clinicalRecords,
             'treatments' => $patient->treatments,
             'teethRecords' => $patient->teethRecords,
-        ]);
-
-        return $pdf->download("historia-{$patient->id}.pdf");
+        ], "historia-{$patient->id}.pdf");
     }
 
-    public function consentFormPdf(ConsentForm $form): Response
+    public function consentFormPdf(ConsentForm $form): Response|JsonResponse
     {
         $form->load('patient');
-
         $tenant = auth()->user()->tenant;
 
         $content = str_replace(
@@ -76,13 +88,11 @@ class PdfController extends Controller
             $form->content
         );
 
-        $pdf = Pdf::loadView('pdf.consent_form', [
+        return $this->loadPdf('pdf.consent_form', [
             'form' => $form,
             'tenant' => $tenant,
             'patient' => $form->patient,
             'content' => $content,
-        ]);
-
-        return $pdf->download("consentimiento-{$form->id}.pdf");
+        ], "consentimiento-{$form->id}.pdf");
     }
 }

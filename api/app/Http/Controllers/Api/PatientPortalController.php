@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PatientPortalController extends Controller
 {
@@ -348,36 +349,60 @@ class PatientPortalController extends Controller
         ]);
     }
 
-    public function downloadPaymentReceipt(string $token, int $paymentId): Response
+    public function downloadPaymentReceipt(string $token, int $paymentId): Response|JsonResponse
     {
-        $patient = $this->findPatient($token);
+        try {
+            $patient = $this->findPatient($token);
 
-        $payment = $patient->payments()->with('budget')->findOrFail($paymentId);
+            $payment = $patient->payments()->with('budget')->findOrFail($paymentId);
 
-        $pdf = Pdf::loadView('pdf.receipt', [
-            'payment' => $payment,
-            'patient' => $patient,
-            'tenant' => $patient->tenant,
-            'budget' => $payment->budget,
-        ]);
+            $pdf = Pdf::loadView('pdf.receipt', [
+                'payment' => $payment,
+                'patient' => $patient,
+                'tenant' => $patient->tenant,
+                'budget' => $payment->budget,
+            ]);
 
-        return $pdf->download("recibo-{$payment->id}.pdf");
+            return $pdf->download("recibo-{$payment->id}.pdf");
+        } catch (\Throwable $e) {
+            Log::error("Portal PDF receipt failed: {$e->getMessage()}", [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'Error al generar el recibo PDF.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
-    public function historyPdf(string $token): Response
+    public function historyPdf(string $token): Response|JsonResponse
     {
-        $patient = $this->findPatient($token);
+        try {
+            $patient = $this->findPatient($token);
 
-        $patient->load(['clinicalRecords.doctor', 'treatments.treatment', 'teethRecords']);
+            $patient->load(['clinicalRecords.doctor', 'treatments.treatment', 'teethRecords']);
 
-        $pdf = Pdf::loadView('pdf.history', [
-            'patient' => $patient,
-            'tenant' => $patient->tenant,
-            'clinicalRecords' => $patient->clinicalRecords,
-            'treatments' => $patient->treatments,
-            'teethRecords' => $patient->teethRecords,
-        ]);
+            $pdf = Pdf::loadView('pdf.history', [
+                'patient' => $patient,
+                'tenant' => $patient->tenant,
+                'clinicalRecords' => $patient->clinicalRecords,
+                'treatments' => $patient->treatments,
+                'teethRecords' => $patient->teethRecords,
+            ]);
 
-        return $pdf->download("historia-{$patient->id}.pdf");
+            return $pdf->download("historia-{$patient->id}.pdf");
+        } catch (\Throwable $e) {
+            Log::error("Portal PDF history failed: {$e->getMessage()}", [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'Error al generar la historia PDF.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
