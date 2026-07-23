@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { Copy, Check, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
-import { QRCode } from 'qrcode.react'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface PortalUrlDialogProps {
   portalToken: string | null | undefined
@@ -42,7 +42,7 @@ export function PortalUrlDialog({ portalToken, open, onOpenChange, patientName }
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="flex justify-center">
-            <QRCode value={url} size={200} level="M" />
+            <QRCodeSVG value={url} size={200} level="M" />
           </div>
           <div className="bg-muted rounded-lg p-4 text-center break-all text-sm font-medium select-all">
             {url}
