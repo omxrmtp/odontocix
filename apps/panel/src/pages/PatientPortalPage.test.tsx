@@ -24,11 +24,20 @@ vi.mock('@/lib/endpoints', () => ({
       tenant_name: 'Clínica Dental Test',
       tenant_phone: '999888777',
     }),
+    updatePatient: () => Promise.resolve({ phone: '987654321', email: 'juan@test.com' }),
     appointments: () => Promise.resolve([]),
+    cancelAppointment: () => Promise.resolve({ message: 'Cancelada' }),
     history: () => Promise.resolve({ clinical_records: [], treatments: [] }),
     budgets: () => Promise.resolve([]),
+    payments: () => Promise.resolve([]),
+    doctors: () => Promise.resolve([]),
+    slots: () => Promise.resolve([]),
+    bookAppointment: () => Promise.resolve({ message: 'Reservada' }),
+    consentForms: () => Promise.resolve([]),
+    signConsentForm: () => Promise.resolve({ message: 'Firmado' }),
   },
   downloadPortalHistoryPdf: () => Promise.resolve(new Blob(['pdf'])),
+  downloadPortalReceipt: () => Promise.resolve(new Blob(['pdf'])),
 }))
 
 describe('PatientPortalPage', () => {
@@ -41,7 +50,7 @@ describe('PatientPortalPage', () => {
 
   it('shows quick action buttons', async () => {
     const { getByText, findByText } = renderWithProviders(<PatientPortalPage />)
-    expect(await findByText('Confirmar cita')).toBeInTheDocument()
+    expect(await findByText('Contactar')).toBeInTheDocument()
     expect(getByText('Descargar historia')).toBeInTheDocument()
   })
 })

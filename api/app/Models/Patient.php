@@ -43,4 +43,14 @@ class Patient extends BaseModel
     {
         return $this->hasMany(Budget::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function consentForms()
+    {
+        return $this->hasMany(ConsentForm::class);
+    }
 }

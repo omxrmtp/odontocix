@@ -80,11 +80,20 @@ Route::get('/debug/db-connections', function () {
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
-Route::prefix('api/portal')->group(function () {
+Route::prefix('portal')->group(function () {
     Route::get('/patient/{token}', [PatientPortalController::class, 'patient']);
+    Route::put('/patient/{token}', [PatientPortalController::class, 'updatePatient']);
     Route::get('/patient/{token}/appointments', [PatientPortalController::class, 'appointments']);
+    Route::put('/patient/{token}/appointments/{appointment}/cancel', [PatientPortalController::class, 'cancelAppointment']);
     Route::get('/patient/{token}/history', [PatientPortalController::class, 'history']);
     Route::get('/patient/{token}/budgets', [PatientPortalController::class, 'budgets']);
+    Route::get('/patient/{token}/payments', [PatientPortalController::class, 'payments']);
+    Route::get('/patient/{token}/payments/{paymentId}/receipt', [PatientPortalController::class, 'downloadPaymentReceipt']);
+    Route::get('/patient/{token}/doctors', [PatientPortalController::class, 'doctors']);
+    Route::get('/patient/{token}/slots', [PatientPortalController::class, 'slots']);
+    Route::post('/patient/{token}/appointments', [PatientPortalController::class, 'bookAppointment']);
+    Route::get('/patient/{token}/consent-forms', [PatientPortalController::class, 'consentForms']);
+    Route::post('/patient/{token}/consent-forms/{consentForm}/sign', [PatientPortalController::class, 'signConsentForm']);
     Route::get('/patient/{token}/history/pdf', [PatientPortalController::class, 'historyPdf']);
 });
 

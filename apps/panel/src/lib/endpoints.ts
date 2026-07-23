@@ -123,17 +123,37 @@ export function downloadPatientHistory(id: number): Promise<Blob> {
 
 export const portalApi = {
   patient: (token: string) =>
-    api.get(`/api/portal/patient/${token}`).then(r => r.data),
+    api.get(`/portal/patient/${token}`).then(r => r.data),
+  updatePatient: (token: string, data: Record<string, unknown>) =>
+    api.put(`/portal/patient/${token}`, data).then(r => r.data),
   appointments: (token: string) =>
-    api.get(`/api/portal/patient/${token}/appointments`).then(r => r.data),
+    api.get(`/portal/patient/${token}/appointments`).then(r => r.data),
+  cancelAppointment: (token: string, appointmentId: number) =>
+    api.put(`/portal/patient/${token}/appointments/${appointmentId}/cancel`).then(r => r.data),
   history: (token: string) =>
-    api.get(`/api/portal/patient/${token}/history`).then(r => r.data),
+    api.get(`/portal/patient/${token}/history`).then(r => r.data),
   budgets: (token: string) =>
-    api.get(`/api/portal/patient/${token}/budgets`).then(r => r.data),
+    api.get(`/portal/patient/${token}/budgets`).then(r => r.data),
+  payments: (token: string) =>
+    api.get(`/portal/patient/${token}/payments`).then(r => r.data),
+  doctors: (token: string) =>
+    api.get(`/portal/patient/${token}/doctors`).then(r => r.data),
+  slots: (token: string, params: Record<string, string>) =>
+    api.get(`/portal/patient/${token}/slots`, { params }).then(r => r.data),
+  bookAppointment: (token: string, data: Record<string, unknown>) =>
+    api.post(`/portal/patient/${token}/appointments`, data).then(r => r.data),
+  consentForms: (token: string) =>
+    api.get(`/portal/patient/${token}/consent-forms`).then(r => r.data),
+  signConsentForm: (token: string, formId: number, data: Record<string, unknown>) =>
+    api.post(`/portal/patient/${token}/consent-forms/${formId}/sign`, data).then(r => r.data),
 }
 
 export function downloadPortalHistoryPdf(token: string): Promise<Blob> {
-  return downloadPdf(`/api/portal/patient/${token}/history/pdf`)
+  return downloadPdf(`/portal/patient/${token}/history/pdf`)
+}
+
+export function downloadPortalReceipt(token: string, paymentId: number): Promise<Blob> {
+  return downloadPdf(`/portal/patient/${token}/payments/${paymentId}/receipt`)
 }
 
 export const recordsApi = {
