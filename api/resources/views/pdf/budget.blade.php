@@ -88,8 +88,11 @@
 
         <table class="totals">
             <tr><td>Subtotal:</td><td>S/ {{ number_format($budget->total, 2) }}</td></tr>
-            @if (($budget->discount_percent ?? 0) > 0)
-            <tr><td>Descuento ({{ $budget->discount_percent }}%):</td><td>- S/ {{ number_format($budget->discount_amount, 2) }}</td></tr>
+            @if (($budget->discount_amount ?? 0) > 0)
+            <tr>
+                <td>Descuento@if (($budget->discount_percent ?? 0) > 0) ({{ $budget->discount_percent }}%)@endif:</td>
+                <td>- S/ {{ number_format($budget->discount_amount, 2) }}</td>
+            </tr>
             @endif
             <tr class="grand-total"><td>Total:</td><td>S/ {{ number_format($budget->grand_total, 2) }}</td></tr>
         </table>

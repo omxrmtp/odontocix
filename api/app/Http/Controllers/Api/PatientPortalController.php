@@ -168,6 +168,9 @@ class PatientPortalController extends Controller
             ->map(fn ($b) => [
                 'id' => $b->id,
                 'status' => $b->status,
+                'total' => $b->total,
+                'discount_percent' => $b->discount_percent,
+                'discount_amount' => $b->discount_amount,
                 'grand_total' => $b->grand_total,
                 'paid_amount' => $b->paid_amount,
                 'balance' => $b->balance,

@@ -37,7 +37,8 @@ class BudgetController extends Controller
             'items.*.tooth_fdi' => 'nullable|string',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
-            'discount_percent' => 'nullable|numeric|min:0|max:100',
+            'discount_type' => 'nullable|in:percentage,fixed',
+            'discount_value' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'financing' => 'nullable|array',
             'financing.type' => 'required_with:financing|in:contado,cuotas',
@@ -46,8 +47,19 @@ class BudgetController extends Controller
         ]);
 
         $subtotal = collect($data['items'])->sum(fn ($i) => $i['quantity'] * $i['unit_price']);
-        $discountPercent = $data['discount_percent'] ?? 0;
-        $discountAmount = $subtotal * ($discountPercent / 100);
+        $discountType = $data['discount_type'] ?? null;
+        $discountValue = $data['discount_value'] ?? 0;
+
+        if ($discountType === 'percentage') {
+            $discountPercent = min($discountValue, 100);
+            $discountAmount = $subtotal * ($discountPercent / 100);
+        } elseif ($discountType === 'fixed') {
+            $discountPercent = $subtotal > 0 ? round(($discountValue / $subtotal) * 100, 2) : 0;
+            $discountAmount = min($discountValue, $subtotal);
+        } else {
+            $discountPercent = 0;
+            $discountAmount = 0;
+        }
         $grandTotal = $subtotal - $discountAmount;
 
         $budget = Budget::create([
@@ -96,9 +108,38 @@ class BudgetController extends Controller
             'status' => 'sometimes|in:draft,sent,approved,rejected,converted',
             'notes' => 'nullable|string',
             'financing' => 'nullable|array',
+            'discount_type' => 'nullable|in:percentage,fixed',
+            'discount_value' => 'nullable|numeric|min:0',
         ]);
 
-        $budget->update($data);
+        if (array_key_exists('discount_type', $data) || array_key_exists('discount_value', $data)) {
+            $discountType = $data['discount_type'] ?? null;
+            $discountValue = $data['discount_value'] ?? 0;
+            $subtotal = $budget->total;
+
+            if ($discountType === 'percentage') {
+                $discountPercent = min($discountValue, 100);
+                $discountAmount = $subtotal * ($discountPercent / 100);
+            } elseif ($discountType === 'fixed') {
+                $discountPercent = $subtotal > 0 ? round(($discountValue / $subtotal) * 100, 2) : 0;
+                $discountAmount = min($discountValue, $subtotal);
+            } else {
+                $discountPercent = 0;
+                $discountAmount = 0;
+            }
+            $grandTotal = $subtotal - $discountAmount;
+
+            $budget->update([
+                'discount_percent' => $discountPercent,
+                'discount_amount' => $discountAmount,
+                'grand_total' => $grandTotal,
+                'status' => $data['status'] ?? $budget->status,
+                'notes' => $data['notes'] ?? $budget->notes,
+                'financing' => $data['financing'] ?? $budget->financing,
+            ]);
+        } else {
+            $budget->update($data);
+        }
 
         return response()->json($budget->load('items', 'patient', 'payments'));
     }
