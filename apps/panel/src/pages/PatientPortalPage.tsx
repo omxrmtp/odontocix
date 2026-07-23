@@ -310,8 +310,8 @@ export default function PatientPortalPage() {
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
-    } catch {
-      toast.error('Error al descargar el PDF.')
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Error al descargar el PDF.')
     } finally {
       setPdfLoading(false)
     }
@@ -329,8 +329,8 @@ export default function PatientPortalPage() {
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
-    } catch {
-      toast.error('Error al descargar el recibo.')
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Error al descargar el recibo.')
     }
   }
 

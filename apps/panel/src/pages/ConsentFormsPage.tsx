@@ -271,8 +271,8 @@ export default function ConsentFormsPage() {
       a.click()
       a.remove()
       window.URL.revokeObjectURL(url)
-    } catch {
-      toast.error('Error al descargar PDF')
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Error al descargar PDF')
     }
   }
 

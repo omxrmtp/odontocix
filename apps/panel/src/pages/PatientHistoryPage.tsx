@@ -213,7 +213,7 @@ export default function PatientHistoryPage() {
         backTo="/pacientes"
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => downloadPatientHistory(p.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `historia-${p.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch(() => toast.error('Error al descargar PDF'))}>PDF</Button>
+            <Button variant="outline" size="sm" onClick={() => downloadPatientHistory(p.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `historia-${p.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch((e) => toast.error(e?.message ?? 'Error al descargar PDF'))}>PDF</Button>
             {canEditHistory && <Link to={`/pacientes/${p.id}/editar`}><Button variant="outline" size="sm">Editar</Button></Link>}
           </div>
         }

@@ -80,6 +80,20 @@ Route::get('/debug/db-connections', function () {
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
+Route::get('/debug/pdf-test', function () {
+    try {
+        $pdf = Barryvdh\DomPDF\Facade\Pdf::loadHTML('<h1>PDF Test</h1><p>If you see this, DomPDF works.</p>');
+        return $pdf->download('test.pdf');
+    } catch (\Throwable $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'class' => get_class($e),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ], 500);
+    }
+});
+
 Route::prefix('portal')->group(function () {
     Route::get('/patient/{token}', [PatientPortalController::class, 'patient']);
     Route::put('/patient/{token}', [PatientPortalController::class, 'updatePatient']);

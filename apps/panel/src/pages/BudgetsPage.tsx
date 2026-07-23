@@ -132,7 +132,7 @@ export default function BudgetsPage() {
                     <TableCell>{b.status}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="outline" size="sm" onClick={() => downloadBudgetPdf(b.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `presupuesto-${b.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch(() => toast.error('Error al descargar PDF'))}>PDF</Button>
+                        <Button variant="outline" size="sm" onClick={() => downloadBudgetPdf(b.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `presupuesto-${b.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch((e) => toast.error(e?.message ?? 'Error al descargar PDF'))}>PDF</Button>
                         <Button variant="outline" size="sm" onClick={() => openEdit(b)}>Ver</Button>
                         {canEditBudgets && <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(b.id)}>Eliminar</Button>}
                       </div>
@@ -158,7 +158,7 @@ export default function BudgetsPage() {
                   <span className="ml-2">Items: {b.items_count ?? 0}</span>
                 </div>
                 <div className="flex gap-1 pt-1">
-                  <Button variant="outline" size="sm" onClick={() => downloadBudgetPdf(b.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `presupuesto-${b.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch(() => toast.error('Error al descargar PDF'))}>PDF</Button>
+                  <Button variant="outline" size="sm" onClick={() => downloadBudgetPdf(b.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `presupuesto-${b.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch((e) => toast.error(e?.message ?? 'Error al descargar PDF'))}>PDF</Button>
                   {canEditBudgets && (
                     <>
                       <Button variant="outline" size="sm" onClick={() => openEdit(b)}>Editar</Button>

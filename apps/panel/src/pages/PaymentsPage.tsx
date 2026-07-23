@@ -109,7 +109,7 @@ export default function PaymentsPage() {
                     <TableCell>{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '-'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="outline" size="sm" onClick={() => downloadPaymentReceipt(p.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `recibo-${p.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch(() => toast.error('Error al descargar recibo'))}>Recibo</Button>
+                        <Button variant="outline" size="sm" onClick={() => downloadPaymentReceipt(p.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `recibo-${p.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch((e) => toast.error(e?.message ?? 'Error al descargar recibo'))}>Recibo</Button>
                         {canEditPayments && <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(p.id)}>Eliminar</Button>}
                       </div>
                     </TableCell>
@@ -134,7 +134,7 @@ export default function PaymentsPage() {
                   <span className="ml-2">{p.payment_method === 'cash' ? 'Efectivo' : p.payment_method === 'transfer' ? 'Transferencia' : p.payment_method === 'card' ? 'Tarjeta' : p.payment_method}</span>
                 </div>
                 <div className="flex gap-1 pt-1">
-                  <Button variant="outline" size="sm" onClick={() => downloadPaymentReceipt(p.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `recibo-${p.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch(() => toast.error('Error al descargar recibo'))}>Recibo</Button>
+                  <Button variant="outline" size="sm" onClick={() => downloadPaymentReceipt(p.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `recibo-${p.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch((e) => toast.error(e?.message ?? 'Error al descargar recibo'))}>Recibo</Button>
                   {canEditPayments && <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(p.id)}>Eliminar</Button>}
                 </div>
               </>

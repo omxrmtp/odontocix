@@ -39,8 +39,22 @@ api.interceptors.response.use(
   }
 )
 
-export function downloadPdf(url: string): Promise<Blob> {
-  return api.get(url, { responseType: 'blob' }).then((r) => r.data)
+export async function downloadPdf(url: string): Promise<Blob> {
+  try {
+    const response = await api.get(url, { responseType: 'blob' })
+    return response.data
+  } catch (error: any) {
+    if (error.response?.data instanceof Blob) {
+      const text = await error.response.data.text()
+      try {
+        const json = JSON.parse(text)
+        throw new Error(json.message || json.error || json.exception || text)
+      } catch {
+        throw new Error(text.substring(0, 300))
+      }
+    }
+    throw error
+  }
 }
 
 export { setToken }
