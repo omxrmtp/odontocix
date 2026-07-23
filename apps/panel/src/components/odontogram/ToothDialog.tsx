@@ -34,9 +34,10 @@ interface ToothDialogProps {
   tooth: ToothData | null
   onClose: () => void
   onSave: (fdiCode: string, data: Partial<ToothData>) => void
+  onHistory?: () => void
 }
 
-export default function ToothDialog({ fdiCode, tooth, onClose, onSave }: ToothDialogProps) {
+export default function ToothDialog({ fdiCode, tooth, onClose, onSave, onHistory }: ToothDialogProps) {
   const [status, setStatus] = useState<ToothStatus>('sano')
   const [surface, setSurface] = useState('')
   const [notes, setNotes] = useState('')
@@ -115,7 +116,12 @@ export default function ToothDialog({ fdiCode, tooth, onClose, onSave }: ToothDi
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          {onHistory && (
+            <Button variant="outline" onClick={onHistory} className="mr-auto">
+              Ver historial
+            </Button>
+          )}
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={handleSave}>Guardar</Button>
         </DialogFooter>

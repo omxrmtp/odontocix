@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { patientsApi, downloadPatientHistory, recordsApi, patientTreatmentsApi, odontogramApi, treatmentsApi, doctorsApi } from '@/lib/endpoints'
+import { patientsApi, downloadPatientHistory, recordsApi, patientTreatmentsApi, odontogramApi, treatmentsApi, doctorsApi, odontogramHistoryApi } from '@/lib/endpoints'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -38,9 +38,6 @@ export default function PatientHistoryPage() {
   const [treatmentForm, setTreatmentForm] = useState({ treatment_id: '', doctor_id: '', status: 'pending', agreed_price: '', tooth_fdi: '' })
   const [editingTreatment, setEditingTreatment] = useState<number | null>(null)
 
-  const [toothDialog, setToothDialog] = useState(false)
-  const [selectedTooth, setSelectedTooth] = useState('')
-  const [toothForm, setToothForm] = useState({ status: 'sano', notes: '' })
   const [confirmDeleteRecord, setConfirmDeleteRecord] = useState<number | null>(null)
   const [confirmDeleteTreatment, setConfirmDeleteTreatment] = useState<number | null>(null)
 
@@ -98,10 +95,22 @@ export default function PatientHistoryPage() {
   })
 
   const updateTooth = useMutation({
-    mutationFn: (d: any) => odontogramApi.update(Number(id), d.fdi, { status: d.status, notes: d.notes }),
+    mutationFn: (d: any) => odontogramApi.update(Number(id), d.fdi, { status: d.status, notes: d.notes, surface: d.surface ?? null }),
     onSuccess: () => { invalidate(); setToothDialog(false); toast.success('Odontograma actualizado') },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Error al actualizar diente'),
   })
+
+  const [toothHistory, setToothHistory] = useState<any[]>([])
+  const [historyDialog, setHistoryDialog] = useState(false)
+  const loadToothHistory = async (fdiCode: string) => {
+    try {
+      const data = await odontogramHistoryApi(Number(id), fdiCode)
+      setToothHistory(data)
+      setHistoryDialog(true)
+    } catch {
+      toast.error('Error al cargar historial')
+    }
+  }
 
   const { data: treatmentsList } = useQuery({ queryKey: ['treatments-list'], queryFn: () => treatmentsApi.list() })
   const { data: doctorsList } = useQuery({ queryKey: ['doctors-list'], queryFn: () => doctorsApi.list() })
@@ -154,16 +163,6 @@ export default function PatientHistoryPage() {
     setTreatmentDialog(true)
   }
 
-  const openToothDialog = (fdi: string) => {
-    const record = teethRecords.find((t: any) => t.fdi_code === fdi)
-    setSelectedTooth(fdi)
-    setToothForm({
-      status: record?.status ?? 'sano',
-      notes: record?.notes ?? '',
-    })
-    setToothDialog(true)
-  }
-
   const handleSaveRecord = () => {
     if (!recordForm.reason.trim()) return toast.error('Motivo es requerido')
     const data = {
@@ -196,14 +195,9 @@ export default function PatientHistoryPage() {
     }
   }
 
-  const handleSaveTooth = () => {
-    if (!toothForm.status) return toast.error('Estado es requerido')
-    updateTooth.mutate({ fdi: selectedTooth, ...toothForm })
-  }
-
   const teethData: Record<string, any> = {}
   for (const t of teethRecords) {
-    teethData[t.fdi_code] = { status: t.status, notes: t.notes }
+    teethData[t.fdi_code] = { status: t.status, notes: t.notes, surface: t.surface ?? '' }
   }
 
   return (
@@ -348,6 +342,7 @@ export default function PatientHistoryPage() {
               onUpdate={(fdiCode, data) => {
                 updateTooth.mutate({ fdi: fdiCode, status: data.status ?? 'sano', notes: data.notes ?? '', surface: data.surface ?? null })
               }}
+              onHistory={(fdiCode) => loadToothHistory(fdiCode)}
               readOnly={!canEditHistory}
             />
           </CardContent>
@@ -412,29 +407,33 @@ export default function PatientHistoryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Tooth Dialog */}
-      <Dialog open={toothDialog} onOpenChange={setToothDialog}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Diente {selectedTooth}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1"><Label>Estado</Label>
-              <select value={toothForm.status} onChange={e => setToothForm(f => ({ ...f, status: e.target.value }))} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option value="sano">Sano</option>
-                <option value="caries">Caries</option>
-                <option value="ausente">Ausente</option>
-                <option value="implante">Implante</option>
-                <option value="corona">Corona</option>
-                <option value="endodoncia">Endodoncia</option>
-                <option value="extraccion">Extracción</option>
-                <option value="puente">Puente</option>
-                <option value="protesis">Prótesis</option>
-              </select>
+      {/* Tooth History Dialog */}
+      <Dialog open={historyDialog} onOpenChange={setHistoryDialog}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Historial del diente</DialogTitle></DialogHeader>
+          {toothHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">Sin cambios registrados</p>
+          ) : (
+            <div className="space-y-3">
+              {toothHistory.map((h: any) => (
+                <div key={h.id} className="border rounded-lg p-3 text-sm space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{h.changed_by ?? 'Sistema'}</span>
+                    <span>{new Date(h.created_at).toLocaleString()}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {h.old_status && <span className="text-muted-foreground">Estado: <span className="line-through">{h.old_status}</span> → <span className="font-medium">{h.new_status}</span></span>}
+                    {!h.old_status && <span className="text-muted-foreground">Estado: <span className="font-medium">{h.new_status}</span> <span className="text-green-600">(inicial)</span></span>}
+                    {h.old_surface && <span className="text-muted-foreground">Superficie: <span className="line-through">{h.old_surface}</span> → <span className="font-medium">{h.new_surface}</span></span>}
+                    {h.old_notes && <span className="text-muted-foreground col-span-2">Notas: <span className="line-through">{h.old_notes}</span> → <span className="font-medium">{h.new_notes}</span></span>}
+                    {!h.old_notes && h.new_notes && <span className="text-muted-foreground col-span-2">Notas: <span className="font-medium">{h.new_notes}</span></span>}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="space-y-1"><Label>Notas</Label><Input value={toothForm.notes} onChange={e => setToothForm(f => ({ ...f, notes: e.target.value }))} /></div>
-          </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setToothDialog(false)}>Cancelar</Button>
-            <Button onClick={handleSaveTooth}>Guardar</Button>
+            <Button variant="outline" onClick={() => setHistoryDialog(false)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -20,6 +20,7 @@ const deciduousQuadrants: QuadrantConfig[] = [
 interface OdontogramProps {
   data: OdontogramData
   onUpdate: (fdiCode: string, data: Partial<ToothData>) => void
+  onHistory?: (fdiCode: string) => void
   readOnly?: boolean
 }
 
@@ -36,7 +37,7 @@ const statusLabels: Record<ToothStatus, string> = {
   puente: 'Puente', protesis: 'Prótesis',
 }
 
-export default function Odontogram({ data, onUpdate, readOnly = false }: OdontogramProps) {
+export default function Odontogram({ data, onUpdate, onHistory, readOnly = false }: OdontogramProps) {
   const [selected, setSelected] = useState<{ fdiCode: string; tooth: ToothData } | null>(null)
 
   const getStatus = (code: string): ToothStatus => data[code]?.status ?? 'sano'
@@ -207,6 +208,7 @@ export default function Odontogram({ data, onUpdate, readOnly = false }: Odontog
           onUpdate(fdiCode, toothData)
           setSelected(null)
         }}
+        onHistory={onHistory ? () => { setSelected(null); onHistory(selected!.fdiCode) } : undefined}
       />
     </div>
   )

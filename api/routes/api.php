@@ -132,6 +132,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/patients/{patient}/records', [ClinicalRecordController::class, 'store']);
         Route::get('/records/{record}', [ClinicalRecordController::class, 'show']);
         Route::get('/patients/{patient}/odontogram', [OdontogramController::class, 'show']);
+        Route::get('/patients/{patient}/odontogram/{fdiCode}/history', [OdontogramController::class, 'history']);
         Route::put('/patients/{patient}/odontogram/{fdiCode}', [OdontogramController::class, 'update']);
         Route::post('/patients/{patient}/treatments', [PatientTreatmentController::class, 'store']);
     });

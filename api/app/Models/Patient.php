@@ -53,4 +53,9 @@ class Patient extends BaseModel
     {
         return $this->hasMany(ConsentForm::class);
     }
+
+    public function teethRecordHistories()
+    {
+        return $this->hasMany(TeethRecordHistory::class);
+    }
 }

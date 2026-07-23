@@ -170,6 +170,10 @@ export const odontogramApi = {
     api.put(`/patients/${patientId}/odontogram/${fdiCode}`, data).then(r => r.data),
 }
 
+export function odontogramHistoryApi(patientId: number, fdiCode: string): Promise<any[]> {
+  return api.get(`/patients/${patientId}/odontogram/${fdiCode}/history`).then(r => r.data)
+}
+
 export const patientTreatmentsApi = {
   create: (patientId: number, data: Record<string, unknown>) =>
     api.post(`/patients/${patientId}/treatments`, data).then(r => r.data),
