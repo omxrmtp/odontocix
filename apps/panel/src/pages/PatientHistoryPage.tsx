@@ -96,8 +96,8 @@ export default function PatientHistoryPage() {
 
   const updateTooth = useMutation({
     mutationFn: (d: any) => odontogramApi.update(Number(id), d.fdi, { status: d.status, notes: d.notes, surface: d.surface ?? null }),
-    onSuccess: () => { invalidate(); setToothDialog(false); toast.success('Odontograma actualizado') },
-    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Error al actualizar diente'),
+    onSuccess: () => { invalidate(); queryClient.invalidateQueries({ queryKey: ['patient', patientId] }); toast.success('Odontograma actualizado') },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? e?.response?.data?.error ?? 'Error al actualizar diente'),
   })
 
   const [toothHistory, setToothHistory] = useState<any[]>([])

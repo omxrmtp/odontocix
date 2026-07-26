@@ -8,6 +8,7 @@ use App\Models\TeethRecord;
 use App\Models\TeethRecordHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class OdontogramController extends Controller
 {
@@ -20,40 +21,54 @@ class OdontogramController extends Controller
 
     public function update(Request $request, Patient $patient, string $fdiCode): JsonResponse
     {
-        $data = $request->validate([
-            'status' => 'required|string|in:sano,caries,ausente,implante,corona,endodoncia,extraccion,puente,protesis',
-            'surface' => 'nullable|string',
-            'treatment_id' => 'nullable|exists:treatments,id',
-            'notes' => 'nullable|string',
-        ]);
+        try {
+            $data = $request->validate([
+                'status' => 'required|string|in:sano,caries,ausente,implante,corona,endodoncia,extraccion,puente,protesis',
+                'surface' => 'nullable|string',
+                'treatment_id' => 'nullable|exists:treatments,id',
+                'notes' => 'nullable|string',
+            ]);
 
-        $existing = TeethRecord::where('patient_id', $patient->id)
-            ->where('fdi_code', $fdiCode)
-            ->first();
+            $existing = TeethRecord::where('patient_id', $patient->id)
+                ->where('fdi_code', $fdiCode)
+                ->first();
 
-        $record = TeethRecord::updateOrCreate(
-            ['patient_id' => $patient->id, 'fdi_code' => $fdiCode],
-            $data,
-        );
+            $record = TeethRecord::updateOrCreate(
+                ['patient_id' => $patient->id, 'fdi_code' => $fdiCode],
+                $data,
+            );
 
-        if ($existing && $record->wasChanged()) {
-            $changed = [];
-            foreach (['status', 'surface', 'notes'] as $field) {
-                if ($record->wasChanged($field)) {
-                    $changed['old_' . $field] = $existing->{$field};
-                    $changed['new_' . $field] = $record->{$field};
+            if ($existing && $record->wasChanged()) {
+                $changed = [];
+                foreach (['status', 'surface', 'notes'] as $field) {
+                    if ($record->wasChanged($field)) {
+                        $changed['old_' . $field] = $existing->{$field};
+                        $changed['new_' . $field] = $record->{$field};
+                    }
+                }
+                if (!empty($changed)) {
+                    TeethRecordHistory::create(array_merge($changed, [
+                        'patient_id' => $patient->id,
+                        'fdi_code' => $fdiCode,
+                        'changed_by' => auth()->id(),
+                    ]));
                 }
             }
-            if (!empty($changed)) {
-                TeethRecordHistory::create(array_merge($changed, [
-                    'patient_id' => $patient->id,
-                    'fdi_code' => $fdiCode,
-                    'changed_by' => auth()->id(),
-                ]));
-            }
-        }
 
-        return response()->json($record->load('treatment'));
+            return response()->json($record->load('treatment'));
+        } catch (\Throwable $e) {
+            Log::error("Odontogram update failed: {$e->getMessage()}", [
+                'patient_id' => $patient->id,
+                'fdi_code' => $fdiCode,
+                'data' => $request->all(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function history(Patient $patient, string $fdiCode): JsonResponse

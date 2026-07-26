@@ -60,18 +60,28 @@ export default function BudgetsPage() {
     setDialogOpen(true)
   }
 
-  const openEdit = (b: any) => {
+  const openEdit = async (b: any) => {
     setEditId(b.id)
-    setForm({
-      patient_id: String(b.patient_id),
-      items: b.items?.map((i: any) => ({ ...i, treatment_id: String(i.treatment_id ?? '') })) ?? [],
-      discount_type: b.discount_type ?? 'percentage',
-      discount_value: b.discount_value ?? 0,
-      valid_until: b.valid_until ?? '',
-      notes: b.notes ?? '',
-      financing: b.financing ?? {},
-    })
-    setDialogOpen(true)
+    try {
+      const full = await budgetsApi.show(b.id)
+      setForm({
+        patient_id: String(full.patient_id),
+        items: full.items?.map((i: any) => ({
+          treatment_id: String(i.treatment_id ?? ''),
+          description: i.description,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+        })) ?? [],
+        discount_type: full.discount_type ?? (full.discount_percent > 0 ? 'percentage' : 'fixed'),
+        discount_value: full.discount_type === 'fixed' ? full.discount_amount : (full.discount_percent > 0 ? full.discount_percent : 0),
+        valid_until: '',
+        notes: full.notes ?? '',
+        financing: full.financing ?? {},
+      })
+      setDialogOpen(true)
+    } catch {
+      toast.error('Error al cargar presupuesto')
+    }
   }
 
   const handleSave = () => {
@@ -126,9 +136,9 @@ export default function BudgetsPage() {
                 (budgets?.data ?? []).map((b: any) => (
                   <TableRow key={b.id} className="hover:bg-muted/50 transition-colors">
                     <TableCell>{b.patient?.first_name} {b.patient?.first_last_name}</TableCell>
-                    <TableCell>S/ {Number(b.total).toFixed(2)}</TableCell>
-                    <TableCell>{b.discount_type === 'percentage' ? `${b.discount_value}%` : `S/ ${b.discount_value}`}</TableCell>
-                    <TableCell>{b.valid_until ?? '-'}</TableCell>
+                    <TableCell>S/ {Number(b.grand_total ?? b.total).toFixed(2)}</TableCell>
+                    <TableCell>{b.discount_percent > 0 ? `${Number(b.discount_percent).toFixed(1)}%` : `S/ ${Number(b.discount_amount).toFixed(2)}`}</TableCell>
+                    <TableCell>-</TableCell>
                     <TableCell>{b.status}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">

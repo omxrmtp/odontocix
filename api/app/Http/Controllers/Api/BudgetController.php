@@ -65,6 +65,8 @@ class BudgetController extends Controller
         $budget = Budget::create([
             'patient_id' => $data['patient_id'],
             'total' => $subtotal,
+            'discount_type' => $discountType,
+            'discount_value' => $discountValue,
             'discount_percent' => $discountPercent,
             'discount_amount' => $discountAmount,
             'grand_total' => $grandTotal,
@@ -104,44 +106,86 @@ class BudgetController extends Controller
     {
         $this->authorize('update', $budget);
 
-        $data = $request->validate([
+        $rules = [
             'status' => 'sometimes|in:draft,sent,approved,rejected,converted',
             'notes' => 'nullable|string',
             'financing' => 'nullable|array',
+            'financing.type' => 'required_with:financing|in:contado,cuotas',
+            'financing.n_cuotas' => 'required_if:financing.type,cuotas|integer|min:1',
+            'financing.monto_cuota' => 'nullable|numeric|min:0',
             'discount_type' => 'nullable|in:percentage,fixed',
             'discount_value' => 'nullable|numeric|min:0',
-        ]);
+            'items' => 'nullable|array|min:1',
+            'items.*.treatment_id' => 'nullable|exists:treatments,id',
+            'items.*.description' => 'required_with:items|string',
+            'items.*.tooth_fdi' => 'nullable|string',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
+            'items.*.unit_price' => 'required_with:items|numeric|min:0',
+        ];
 
-        if (array_key_exists('discount_type', $data) || array_key_exists('discount_value', $data)) {
+        $data = $request->validate($rules);
+
+        $updateData = [];
+
+        if ($request->has('items')) {
+            $subtotal = collect($data['items'])->sum(fn ($i) => $i['quantity'] * $i['unit_price']);
+
+            $budget->items()->delete();
+            foreach ($data['items'] as $item) {
+                BudgetItem::create([
+                    'budget_id' => $budget->id,
+                    'treatment_id' => $item['treatment_id'] ?? null,
+                    'description' => $item['description'],
+                    'tooth_fdi' => $item['tooth_fdi'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'subtotal' => $item['quantity'] * $item['unit_price'],
+                ]);
+            }
+
+            $updateData['total'] = $subtotal;
+        } else {
+            $subtotal = $budget->total;
+        }
+
+        if ($request->has('discount_type') || $request->has('discount_value')) {
             $discountType = $data['discount_type'] ?? null;
             $discountValue = $data['discount_value'] ?? 0;
-            $subtotal = $budget->total;
+            $discountValue = min($discountValue, $subtotal);
 
             if ($discountType === 'percentage') {
                 $discountPercent = min($discountValue, 100);
                 $discountAmount = $subtotal * ($discountPercent / 100);
             } elseif ($discountType === 'fixed') {
                 $discountPercent = $subtotal > 0 ? round(($discountValue / $subtotal) * 100, 2) : 0;
-                $discountAmount = min($discountValue, $subtotal);
+                $discountAmount = $discountValue;
             } else {
                 $discountPercent = 0;
                 $discountAmount = 0;
             }
-            $grandTotal = $subtotal - $discountAmount;
 
-            $budget->update([
-                'discount_percent' => $discountPercent,
-                'discount_amount' => $discountAmount,
-                'grand_total' => $grandTotal,
-                'status' => $data['status'] ?? $budget->status,
-                'notes' => $data['notes'] ?? $budget->notes,
-                'financing' => $data['financing'] ?? $budget->financing,
-            ]);
-        } else {
-            $budget->update($data);
+            $updateData['discount_type'] = $discountType ?? ($budget->discount_type ?? null);
+            $updateData['discount_value'] = $discountValue;
+            $updateData['discount_percent'] = $discountPercent;
+            $updateData['discount_amount'] = $discountAmount;
+            $updateData['grand_total'] = $subtotal - $discountAmount;
         }
 
-        return response()->json($budget->load('items', 'patient', 'payments'));
+        if ($request->has('status')) {
+            $updateData['status'] = $data['status'];
+        }
+        if ($request->has('notes')) {
+            $updateData['notes'] = $data['notes'];
+        }
+        if ($request->has('financing')) {
+            $updateData['financing'] = $data['financing'];
+        }
+
+        if (!empty($updateData)) {
+            $budget->update($updateData);
+        }
+
+        return response()->json($budget->fresh()->load('items', 'patient', 'payments'));
     }
 
     public function destroy(Budget $budget): JsonResponse

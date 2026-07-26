@@ -9,7 +9,7 @@ class Budget extends BaseModel
 {
     use Auditable, HasFactory;
     protected $fillable = [
-        'tenant_id', 'patient_id', 'total', 'discount_percent', 'discount_amount',
+        'tenant_id', 'patient_id', 'total', 'discount_type', 'discount_value', 'discount_percent', 'discount_amount',
         'grand_total', 'status', 'financing', 'notes',
     ];
 
