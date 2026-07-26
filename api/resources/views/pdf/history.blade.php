@@ -54,9 +54,9 @@
             </tr>
             <tr>
                 <td>Fecha de Nacimiento:</td>
-                <td>{{ $patient->birth_date ? $patient->birth_date->format('d/m/Y') : '-' }}</td>
+                <td>{{ $patient->birth_date ? \Carbon\Carbon::parse($patient->birth_date)->format('d/m/Y') : '-' }}</td>
                 <td>Edad:</td>
-                <td>{{ $patient->birth_date ? $patient->birth_date->age . ' años' : '-' }}</td>
+                <td>{{ $patient->birth_date ? \Carbon\Carbon::parse($patient->birth_date)->age . ' años' : '-' }}</td>
             </tr>
             <tr>
                 <td>Sexo:</td>
@@ -95,7 +95,7 @@
             <tbody>
                 @foreach ($clinicalRecords as $record)
                 <tr>
-                    <td>{{ $record->record_date ? $record->record_date->format('d/m/Y') : '-' }}</td>
+                    <td>{{ $record->record_date ? \Carbon\Carbon::parse($record->record_date)->format('d/m/Y') : '-' }}</td>
                     <td>{{ $record->doctor ? $record->doctor->first_name . ' ' . $record->doctor->first_last_name . ($record->doctor->cmp ? ' (CMP: ' . $record->doctor->cmp . ')' : '') : '-' }}</td>
                     <td>{{ $record->reason ?? '-' }}</td>
                     <td>{{ $record->diagnosis ?? '-' }}</td>
