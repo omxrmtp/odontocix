@@ -21,9 +21,7 @@ class AvailableSlot extends BaseModel
     protected function casts(): array
     {
         return [
-            'date' => 'date',
-            'start_time' => 'datetime',
-            'end_time' => 'datetime',
+            'date' => 'date:Y-m-d',
             'is_available' => 'boolean',
             'is_booked' => 'boolean',
         ];

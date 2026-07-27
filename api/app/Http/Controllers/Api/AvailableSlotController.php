@@ -31,9 +31,33 @@ class AvailableSlotController extends Controller
             $query->where('is_available', true);
         }
 
-        $slots = $query->orderBy('date')->orderBy('start_time')->get();
+        $slots = $query->orderBy('date')->orderBy('start_time')->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'date' => $s->date,
+                'start_time' => substr($s->start_time, 0, 5),
+                'end_time' => substr($s->end_time, 0, 5),
+                'is_available' => $s->is_available,
+                'is_booked' => $s->is_booked,
+                'doctor' => $s->doctor,
+                'created_at' => $s->created_at,
+                'updated_at' => $s->updated_at,
+            ]);
 
         return response()->json($slots);
+    }
+
+    public function show(AvailableSlot $availableSlot): JsonResponse
+    {
+        return response()->json([
+            'id' => $availableSlot->id,
+            'date' => $availableSlot->date,
+            'start_time' => substr($availableSlot->start_time, 0, 5),
+            'end_time' => substr($availableSlot->end_time, 0, 5),
+            'is_available' => $availableSlot->is_available,
+            'is_booked' => $availableSlot->is_booked,
+            'doctor' => $availableSlot->doctor,
+        ]);
     }
 
     public function store(Request $request): JsonResponse

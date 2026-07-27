@@ -192,8 +192,8 @@ export default function AvailableSlotsPage() {
                   {(slots ?? []).map((slot: any) => (
                     <TableRow key={slot.id}>
                       <TableCell>{slot.date}</TableCell>
-                      <TableCell>{format(new Date(`1970-01-01T${slot.start_time}`), 'HH:mm')}</TableCell>
-                      <TableCell>{format(new Date(`1970-01-01T${slot.end_time}`), 'HH:mm')}</TableCell>
+                      <TableCell>{slot.start_time}</TableCell>
+                      <TableCell>{slot.end_time}</TableCell>
                       <TableCell>
                         {slot.doctor ? `Dr. ${slot.doctor.first_name} ${slot.doctor.first_last_name}` : '-'}
                       </TableCell>
@@ -239,7 +239,7 @@ export default function AvailableSlotsPage() {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {format(new Date(`1970-01-01T${s.start_time}`), 'HH:mm')} - {format(new Date(`1970-01-01T${s.end_time}`), 'HH:mm')}
+                    {s.start_time} - {s.end_time}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {s.doctor ? `Dr. ${s.doctor.first_name} ${s.doctor.first_last_name}` : '-'}
