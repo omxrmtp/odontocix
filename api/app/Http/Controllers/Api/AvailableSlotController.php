@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AvailableSlot;
+use App\Models\BlockedDate;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,6 +70,7 @@ class AvailableSlotController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'duration_minutes' => 'nullable|integer|min:5|max:240',
+            'skip_blocked' => 'nullable|boolean',
         ]);
 
         $doctorId = $data['doctor_id'];
@@ -77,10 +79,19 @@ class AvailableSlotController extends Controller
         $startTime = Carbon::parse($data['start_time']);
         $endTime = Carbon::parse($data['end_time']);
         $duration = $data['duration_minutes'] ?? 30;
+        $skipBlocked = $data['skip_blocked'] ?? false;
+
+        // Cargar fechas bloqueadas del rango
+        $blockedDates = BlockedDate::whereBetween('date', [
+            $startDate->format('Y-m-d'),
+            $endDate->format('Y-m-d'),
+        ])->pluck('date')->map(fn ($d) => $d->format('Y-m-d'))->toArray();
 
         $created = [];
+        $skippedBlocked = 0;
+        $skippedDuplicates = 0;
 
-        DB::transaction(function () use ($doctorId, $startDate, $endDate, $startTime, $endTime, $duration, $request, &$created) {
+        DB::transaction(function () use ($doctorId, $startDate, $endDate, $startTime, $endTime, $duration, $request, $blockedDates, $skipBlocked, &$created, &$skippedBlocked, &$skippedDuplicates) {
             $weekdays = $request->input('weekdays');
             $weekdayArray = $weekdays ? array_map('intval', explode(',', $weekdays)) : null;
 
@@ -88,6 +99,18 @@ class AvailableSlotController extends Controller
                 if ($weekdayArray !== null && !in_array($date->dayOfWeek, $weekdayArray)) {
                     continue;
                 }
+
+                $dateStr = $date->format('Y-m-d');
+
+                // Saltar fechas bloqueadas
+                if (in_array($dateStr, $blockedDates)) {
+                    if ($skipBlocked) {
+                        $skippedBlocked++;
+                        continue;
+                    }
+                    throw new \RuntimeException("La fecha {$dateStr} está bloqueada (feriado o día no laborable).");
+                }
+
                 $current = $startTime->copy();
                 while ($current->lt($endTime)) {
                     $slotStart = $current->format('H:i:s');
@@ -97,9 +120,22 @@ class AvailableSlotController extends Controller
                         break;
                     }
 
+                    // Verificar duplicados
+                    $exists = AvailableSlot::where('doctor_id', $doctorId)
+                        ->where('date', $dateStr)
+                        ->where('start_time', $slotStart)
+                        ->where('end_time', $slotEnd)
+                        ->exists();
+
+                    if ($exists) {
+                        $skippedDuplicates++;
+                        $current->addMinutes($duration);
+                        continue;
+                    }
+
                     $slot = AvailableSlot::create([
                         'doctor_id' => $doctorId,
-                        'date' => $date->format('Y-m-d'),
+                        'date' => $dateStr,
                         'start_time' => $slotStart,
                         'end_time' => $slotEnd,
                         'is_available' => true,
@@ -113,15 +149,56 @@ class AvailableSlotController extends Controller
             }
         });
 
-        return response()->json($created, 201);
+        $message = count($created) . ' horarios creados';
+        if ($skippedBlocked > 0) $message .= " ({$skippedBlocked} fechas bloqueadas omitidas)";
+        if ($skippedDuplicates > 0) $message .= " ({$skippedDuplicates} duplicados omitidos)";
+
+        return response()->json([
+            'data' => $created,
+            'message' => $message,
+            'created_count' => count($created),
+            'skipped_blocked' => $skippedBlocked,
+            'skipped_duplicates' => $skippedDuplicates,
+        ], 201);
     }
 
     public function update(Request $request, AvailableSlot $availableSlot): JsonResponse
     {
         $data = $request->validate([
+            'doctor_id' => 'sometimes|exists:doctors,id',
+            'date' => 'sometimes|date',
+            'start_time' => 'sometimes|date_format:H:i',
+            'end_time' => 'sometimes|date_format:H:i|after:start_time',
             'is_available' => 'sometimes|boolean',
             'is_booked' => 'sometimes|boolean',
         ]);
+
+        // Verificar duplicado si cambia doctor/fecha/hora
+        if (isset($data['doctor_id']) || isset($data['date']) || isset($data['start_time']) || isset($data['end_time'])) {
+            $doctorId = $data['doctor_id'] ?? $availableSlot->doctor_id;
+            $date = $data['date'] ?? $availableSlot->date;
+            $startTime = ($data['start_time'] ?? $availableSlot->start_time) . ':00';
+            $endTime = ($data['end_time'] ?? $availableSlot->end_time) . ':00';
+
+            $exists = AvailableSlot::where('doctor_id', $doctorId)
+                ->where('date', $date)
+                ->where('start_time', $startTime)
+                ->where('end_time', $endTime)
+                ->where('id', '!=', $availableSlot->id)
+                ->exists();
+
+            if ($exists) {
+                return response()->json(['message' => 'Ya existe un horario idéntico para este doctor.'], 422);
+            }
+        }
+
+        // Formatear tiempos con segundos
+        if (isset($data['start_time'])) {
+            $data['start_time'] .= ':00';
+        }
+        if (isset($data['end_time'])) {
+            $data['end_time'] .= ':00';
+        }
 
         $availableSlot->update($data);
 
@@ -133,5 +210,17 @@ class AvailableSlotController extends Controller
         $availableSlot->delete();
 
         return response()->json(['message' => 'Slot eliminado.']);
+    }
+
+    public function destroyBatch(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:available_slots,id',
+        ]);
+
+        $count = AvailableSlot::whereIn('id', $data['ids'])->delete();
+
+        return response()->json(['message' => "{$count} horarios eliminados."]);
     }
 }

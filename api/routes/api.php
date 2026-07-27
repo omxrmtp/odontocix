@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\PatientPortalController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\AvailableSlotController;
+use App\Http\Controllers\Api\BlockedDateController;
 use App\Http\Controllers\Api\OnlineBookingController;
 use App\Http\Controllers\Api\TreatmentController;
 use App\Http\Controllers\Api\RoleController;
@@ -263,7 +264,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/available-slots', [AvailableSlotController::class, 'store']);
         Route::put('/available-slots/{available_slot}', [AvailableSlotController::class, 'update']);
         Route::delete('/available-slots/{available_slot}', [AvailableSlotController::class, 'destroy']);
+        Route::post('/available-slots/batch-delete', [AvailableSlotController::class, 'destroyBatch']);
+        Route::post('/blocked-dates', [BlockedDateController::class, 'store']);
+        Route::delete('/blocked-dates/{blockedDate}', [BlockedDateController::class, 'destroy']);
     });
+    Route::get('/blocked-dates', [BlockedDateController::class, 'index']);
 
     // Audit Logs
     Route::middleware('permission:auditoria.ver')->group(function () {

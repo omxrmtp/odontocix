@@ -241,6 +241,17 @@ export const availableSlotsApi = {
     api.put(`/available-slots/${id}`, data).then(r => r.data),
   delete: (id: number) =>
     api.delete(`/available-slots/${id}`).then(r => r.data),
+  batchDelete: (ids: number[]) =>
+    api.post('/available-slots/batch-delete', { ids }).then(r => r.data),
+}
+
+export const blockedDatesApi = {
+  list: (params?: Record<string, string>) =>
+    api.get('/blocked-dates', { params }).then(r => r.data),
+  create: (data: Record<string, unknown>) =>
+    api.post('/blocked-dates', data).then(r => r.data),
+  delete: (id: number) =>
+    api.delete(`/blocked-dates/${id}`).then(r => r.data),
 }
 
 export const onlineBookingApi = {
