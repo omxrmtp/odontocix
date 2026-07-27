@@ -35,7 +35,7 @@ type NavItem = {
 }
 
 const nav: NavItem[] = [
-  { href: '/', label: 'Dashboard', icon: Home, perm: null },
+  { href: '/', label: 'Inicio', icon: Home, perm: null },
   { href: '/pacientes', label: 'Pacientes', icon: Users, perm: 'pacientes.ver' },
   { href: '/doctores', label: 'Doctores', icon: Stethoscope, perm: 'doctores.ver' },
   { href: '/citas', label: 'Citas', icon: Calendar, perm: 'citas.ver' },

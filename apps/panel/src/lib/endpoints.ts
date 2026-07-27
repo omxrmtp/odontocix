@@ -98,7 +98,6 @@ export const treatmentsApi = {
 
 export const dashboardApi = {
   stats: () => api.get('/dashboard/stats').then(r => r.data),
-  charts: () => api.get('/dashboard/charts').then(r => r.data),
 }
 
 export const profileApi = {

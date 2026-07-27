@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import DashboardPage from './DashboardPage'
 
+vi.mock('@/hooks/usePermission', () => ({
+  usePermission: () => ({ canEdit: () => true, canView: () => true }),
+}))
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
 })
@@ -25,6 +29,6 @@ describe('DashboardPage', () => {
 
   it('renders loading state initially', () => {
     renderWithProviders()
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Inicio')).toBeInTheDocument()
   })
 })

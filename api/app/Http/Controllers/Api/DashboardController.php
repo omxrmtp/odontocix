@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\BudgetItem;
 use App\Models\CashTransaction;
+use App\Models\InventoryItem;
 use App\Models\Patient;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
@@ -20,9 +21,35 @@ class DashboardController extends Controller
 
         $patientsToday = Patient::whereDate('created_at', $today)->count();
 
-        $appointmentsToday = Appointment::whereDate('start_date', $today)->count();
+        $appointmentsToday = Appointment::whereDate('start_date', $today)
+            ->with(['patient:id,first_name,first_last_name', 'doctor:id,first_name,first_last_name'])
+            ->orderBy('start_date')
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'start_date' => $a->start_date->format('Y-m-d H:i'),
+                'status' => $a->status,
+                'patient' => $a->patient?->first_name . ' ' . $a->patient?->first_last_name,
+                'doctor' => $a->doctor?->first_name . ' ' . $a->doctor?->first_last_name,
+            ]);
 
-        $appointmentsUpcoming = Appointment::where('start_date', '>', $now)->count();
+        $appointmentsUpcoming = Appointment::where('start_date', '>', $now)
+            ->where('start_date', '<=', $now->copy()->addDays(2))
+            ->with(['patient:id,first_name,first_last_name', 'doctor:id,first_name,first_last_name'])
+            ->orderBy('start_date')
+            ->limit(10)
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'start_date' => $a->start_date->format('Y-m-d H:i'),
+                'status' => $a->status,
+                'patient' => $a->patient?->first_name . ' ' . $a->patient?->first_last_name,
+                'doctor' => $a->doctor?->first_name . ' ' . $a->doctor?->first_last_name,
+            ]);
+
+        $pendingConfirmations = Appointment::where('status', 'pendiente')
+            ->whereDate('start_date', '>=', $today)
+            ->count();
 
         $incomeToday = Payment::whereDate('payment_date', $today)->sum('amount');
 
@@ -35,6 +62,38 @@ class DashboardController extends Controller
             ->whereYear('transaction_date', $now->year)
             ->sum('amount');
 
+        // Mes anterior para comparación
+        $lastMonth = $now->copy()->subMonth();
+        $incomeLastMonth = Payment::whereMonth('payment_date', $lastMonth->month)
+            ->whereYear('payment_date', $lastMonth->year)
+            ->sum('amount');
+        $expensesLastMonth = CashTransaction::where('type', 'expense')
+            ->whereMonth('transaction_date', $lastMonth->month)
+            ->whereYear('transaction_date', $lastMonth->year)
+            ->sum('amount');
+
+        $balance = $incomeMonth - $expensesMonth;
+        $balanceLastMonth = $incomeLastMonth - $expensesLastMonth;
+        $balanceChange = $balanceLastMonth != 0
+            ? round((($balance - $balanceLastMonth) / abs($balanceLastMonth)) * 100, 1)
+            : ($balance > 0 ? 100 : 0);
+
+        $margin = $incomeMonth > 0 ? round((($incomeMonth - $expensesMonth) / $incomeMonth) * 100, 1) : 0;
+        $marginLastMonth = $incomeLastMonth > 0 ? round((($incomeLastMonth - $expensesLastMonth) / $incomeLastMonth) * 100, 1) : 0;
+
+        // Stock bajo
+        $lowStock = InventoryItem::whereColumn('quantity', '<=', 'min_stock')
+            ->select('id', 'name', 'quantity', 'min_stock', 'unit')
+            ->limit(5)
+            ->get()
+            ->map(fn ($i) => [
+                'id' => $i->id,
+                'name' => $i->name,
+                'quantity' => $i->quantity,
+                'min_stock' => $i->min_stock,
+                'unit' => $i->unit,
+            ]);
+
         $topTreatments = BudgetItem::select('treatment_id', DB::raw('count(*) as count'))
             ->with('treatment:id,name')
             ->groupBy('treatment_id')
@@ -44,21 +103,6 @@ class DashboardController extends Controller
             ->map(fn ($item) => [
                 'name' => $item->treatment->name,
                 'count' => $item->count,
-            ]);
-
-        $recentAppointments = Appointment::with([
-            'patient:id,first_name,first_last_name',
-            'doctor:id,first_name,first_last_name',
-        ])
-            ->latest('start_date')
-            ->limit(5)
-            ->get()
-            ->map(fn ($a) => [
-                'id' => $a->id,
-                'start_date' => $a->start_date,
-                'status' => $a->status,
-                'patient' => $a->patient?->first_name . ' ' . $a->patient?->first_last_name,
-                'doctor' => $a->doctor?->first_name . ' ' . $a->doctor?->first_last_name,
             ]);
 
         $recentPayments = Payment::with([
@@ -80,12 +124,19 @@ class DashboardController extends Controller
             'patients_today' => $patientsToday,
             'appointments_today' => $appointmentsToday,
             'appointments_upcoming' => $appointmentsUpcoming,
+            'pending_confirmations' => $pendingConfirmations,
             'income_today' => $incomeToday,
             'income_month' => $incomeMonth,
             'expenses_month' => $expensesMonth,
-            'balance' => $incomeMonth - $expensesMonth,
+            'income_last_month' => $incomeLastMonth,
+            'expenses_last_month' => $expensesLastMonth,
+            'balance' => $balance,
+            'balance_last_month' => $balanceLastMonth,
+            'balance_change' => $balanceChange,
+            'margin' => $margin,
+            'margin_last_month' => $marginLastMonth,
+            'low_stock' => $lowStock,
             'top_treatments' => $topTreatments,
-            'recent_appointments' => $recentAppointments,
             'recent_payments' => $recentPayments,
         ]);
     }
