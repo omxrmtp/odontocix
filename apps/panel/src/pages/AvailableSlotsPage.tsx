@@ -302,13 +302,13 @@ export default function AvailableSlotsPage() {
               blocked: (date) => blockedDatesSet.has(format(date, 'yyyy-MM-dd')),
             }}
             modifiersClassNames={{
-              hasSlots: 'bg-blue-100 text-blue-700 font-semibold',
+              hasSlots: 'bg-sky-100 text-sky-700 font-semibold',
               blocked: 'bg-red-100 text-red-700 line-through opacity-70',
             }}
           />
           <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-blue-500" /> Con horarios
+              <span className="w-2 h-2 rounded-full bg-sky-500" /> Con horarios
             </span>
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-red-500" /> Bloqueada
@@ -401,7 +401,7 @@ export default function AvailableSlotsPage() {
                         {slot.is_booked ? (
                           <Badge variant="destructive">Reservado</Badge>
                         ) : slot.is_available ? (
-                          <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-100">Disponible</Badge>
+                          <Badge variant="default" className="bg-sky-100 text-sky-700 hover:bg-sky-100">Disponible</Badge>
                         ) : (
                           <Badge variant="secondary">No disponible</Badge>
                         )}
@@ -434,7 +434,7 @@ export default function AvailableSlotsPage() {
                     {s.is_booked ? (
                       <Badge variant="destructive">Reservado</Badge>
                     ) : s.is_available ? (
-                      <Badge variant="default" className="bg-green-100 text-green-700 hover:bg-green-100">Disponible</Badge>
+                      <Badge variant="default" className="bg-sky-100 text-sky-700 hover:bg-sky-100">Disponible</Badge>
                     ) : (
                       <Badge variant="secondary">No disponible</Badge>
                     )}

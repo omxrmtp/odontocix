@@ -18,9 +18,9 @@ import {
 } from 'lucide-react'
 
 const statusColor: Record<string, string> = {
-  pendiente: 'bg-yellow-100 text-yellow-700',
-  confirmada: 'bg-green-100 text-green-700',
-  completada: 'bg-blue-100 text-blue-700',
+  pendiente: 'bg-amber-100 text-amber-700',
+  confirmada: 'bg-sky-100 text-sky-700',
+  completada: 'bg-sky-100 text-sky-700',
   cancelada: 'bg-red-100 text-red-700',
 }
 
@@ -236,7 +236,7 @@ export default function DashboardPage() {
           <CardContent className="space-y-2">
             <p className="text-2xl font-bold">{loading ? '...' : `S/ ${Number(s.balance ?? 0).toFixed(2)}`}</p>
             {!loading && (
-              <p className={`text-sm flex items-center gap-1 ${(s.balance_change ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-sm flex items-center gap-1 ${(s.balance_change ?? 0) >= 0 ? 'text-sky-600' : 'text-red-600'}`}>
                 {(s.balance_change ?? 0) >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                 {Math.abs(s.balance_change ?? 0)}% vs mes anterior
               </p>
@@ -264,12 +264,12 @@ export default function DashboardPage() {
             <div className="pt-2 border-t">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Margen</span>
-                <span className={`text-lg font-bold ${margin >= 50 ? 'text-green-600' : margin >= 20 ? 'text-yellow-600' : 'text-red-600'}`}>
+                <span className={`text-lg font-bold ${margin >= 50 ? 'text-sky-600' : margin >= 20 ? 'text-amber-600' : 'text-red-600'}`}>
                   {margin}%
                 </span>
               </div>
               {!loading && marginChange !== 0 && (
-                <p className={`text-xs ${marginChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`text-xs ${marginChange > 0 ? 'text-sky-600' : 'text-red-600'}`}>
                   {marginChange > 0 ? '↑' : '↓'} {Math.abs(marginChange).toFixed(1)}% vs mes anterior
                 </p>
               )}
@@ -399,7 +399,7 @@ export default function DashboardPage() {
                       <p className="text-sm font-medium">{p.patient}</p>
                       <p className="text-xs text-muted-foreground">{p.method} · {p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '-'}</p>
                     </div>
-                    <span className="text-sm font-mono font-medium text-green-600">S/ {Number(p.amount).toFixed(2)}</span>
+                    <span className="text-sm font-mono font-medium text-sky-600">S/ {Number(p.amount).toFixed(2)}</span>
                   </div>
                 ))}
               </div>

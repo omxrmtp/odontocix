@@ -71,7 +71,7 @@ export default function CashPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Ingresos</CardTitle></CardHeader>
-          <CardContent><p className="text-2xl font-bold text-green-600">{loadingSummary ? '...' : `S/ ${income.toFixed(2)}`}</p></CardContent>
+          <CardContent><p className="text-2xl font-bold text-sky-600">{loadingSummary ? '...' : `S/ ${income.toFixed(2)}`}</p></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Egresos</CardTitle></CardHeader>
@@ -91,7 +91,7 @@ export default function CashPage() {
               {Object.entries(summary.by_category).map(([cat, data]: [string, any]) => (
                 <div key={cat} className="border rounded p-2 text-sm">
                   <p className="font-medium">{cat}</p>
-                  <p className={data.total >= 0 ? 'text-green-600' : 'text-red-600'}>S/ {Number(data.total).toFixed(2)}</p>
+                  <p className={data.total >= 0 ? 'text-sky-600' : 'text-red-600'}>S/ {Number(data.total).toFixed(2)}</p>
                   <p className="text-xs text-muted-foreground">{data.count} movimientos</p>
                 </div>
               ))}
@@ -123,7 +123,7 @@ export default function CashPage() {
                 (transactions?.data ?? []).map((t: any) => (
                   <TableRow key={t.id} className="hover:bg-muted/50 transition-colors">
                     <TableCell>
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.type === 'income' ? 'bg-sky-100 text-sky-700' : 'bg-red-100 text-red-700'}`}>
                         {t.type === 'income' ? 'Ingreso' : 'Egreso'}
                       </span>
                     </TableCell>
@@ -146,7 +146,7 @@ export default function CashPage() {
               <>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">{t.category ?? '-'}</span>
-                  <span className={`font-mono text-sm font-medium ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`font-mono text-sm font-medium ${t.type === 'income' ? 'text-sky-600' : 'text-red-600'}`}>
                     {t.type === 'income' ? '+' : '-'} S/ {Number(t.amount).toFixed(2)}
                   </span>
                 </div>
