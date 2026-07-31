@@ -1,5 +1,5 @@
 services:
-  # Single service: Backend API + Frontend SPA
+  # Web service: Backend API + Frontend SPA
   - type: web
     name: odontocix
     runtime: docker
@@ -91,5 +91,54 @@ services:
         sync: false
     buildCommand: ""
     healthCheckPath: /health
+    numInstances: 1
+    plan: starter
+
+  # Worker service: queue + scheduler
+  - type: worker
+    name: odontocix-worker
+    runtime: docker
+    repo: https://github.com/omxrmtp/odontocix.git
+    branch: main
+    rootDir: .
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    dockerCommand: /usr/local/bin/start-worker.sh
+    envVars:
+      - key: APP_NAME
+        value: OdontoCix
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        value: https://odontocix.onrender.com
+      - key: APP_LOCALE
+        value: es
+      - key: APP_FALLBACK_LOCALE
+        value: es
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_STACK
+        value: single
+      - key: LOG_LEVEL
+        value: warning
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        sync: false
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: MAIL_MAILER
+        value: resend
+      - key: MAIL_FROM_ADDRESS
+        value: noreply@odontocix.com
+      - key: MAIL_FROM_NAME
+        value: OdontoCix
+      - key: SANCTUM_TOKEN_EXPIRATION
+        value: "10080"
+    buildCommand: ""
     numInstances: 1
     plan: starter
