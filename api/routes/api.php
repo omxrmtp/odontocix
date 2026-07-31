@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\TreatmentController;
 use App\Http\Controllers\Api\WhatsappWebhookController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WhatsappSettingsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -315,6 +316,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/permissions', [RoleController::class, 'permissions']);
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/{user}', [UserController::class, 'show']);
+        Route::get('/settings/whatsapp', [WhatsappSettingsController::class, 'show']);
     });
 
     // Roles & Permissions — escritura requiere editar
@@ -327,6 +329,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
         Route::put('/users/{user}/role', [UserController::class, 'assignRole']);
         Route::put('/users/{user}/toggle-active', [UserController::class, 'toggleActive']);
+        Route::put('/settings/whatsapp', [WhatsappSettingsController::class, 'update']);
     });
 
     // Automation API (tokens + endpoints)

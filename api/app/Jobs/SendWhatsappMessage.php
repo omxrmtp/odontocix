@@ -32,6 +32,8 @@ class SendWhatsappMessage implements ShouldQueue
     public function handle(WhatsappProviderInterface $whatsapp): void
     {
         try {
+            app(\App\Services\TenantService::class)->setCurrent(\App\Models\Tenant::find($this->tenantId));
+
             if ($this->useTemplate) {
                 $result = $whatsapp->sendTemplate($this->recipientPhone, $this->messageTemplate, $this->templateParams);
             } else {

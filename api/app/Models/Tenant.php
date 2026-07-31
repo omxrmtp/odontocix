@@ -16,7 +16,8 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     {
         return [
             'id', 'name', 'ruc', 'phone', 'address', 'email', 'estado',
-            'whatsapp_phone_number_id',
+            'whatsapp_phone_number_id', 'whatsapp_access_token', 'whatsapp_business_account_id',
+            'whatsapp_app_secret', 'whatsapp_webhook_verify_token', 'whatsapp_enabled',
         ];
     }
 
@@ -24,6 +25,10 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     {
         return array_merge(parent::casts(), [
             'data' => 'array',
+            'whatsapp_access_token' => 'encrypted',
+            'whatsapp_app_secret' => 'encrypted',
+            'whatsapp_webhook_verify_token' => 'encrypted',
+            'whatsapp_enabled' => 'boolean',
         ]);
     }
 

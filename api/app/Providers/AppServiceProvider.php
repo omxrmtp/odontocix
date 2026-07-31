@@ -17,8 +17,8 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(\App\Services\WhatsappProviderInterface::class, function () {
             return match (config('whatsapp.provider', 'meta')) {
-                'meta' => new \App\Services\MetaWhatsappProvider(),
-                default => new \App\Services\MetaWhatsappProvider(),
+                'meta' => $this->app->make(\App\Services\MetaWhatsappProvider::class),
+                default => $this->app->make(\App\Services\MetaWhatsappProvider::class),
             };
         });
     }

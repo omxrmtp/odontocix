@@ -677,6 +677,111 @@ function ClinicDataTab() {
   )
 }
 
+function WhatsappSettingsTab() {
+  const { can } = usePermission()
+  const queryClient = useQueryClient()
+  const { data, isPending } = useQuery({ queryKey: ['whatsapp-settings'], queryFn: () => profileApi.whatsappSettings() })
+  const [form, setForm] = useState({ phone_number_id: '', business_account_id: '', access_token: '', app_secret: '', webhook_verify_token: '', enabled: false })
+  const [loaded, setLoaded] = useState(false)
+
+  if (data && !loaded) {
+    setForm({
+      phone_number_id: data.phone_number_id ?? '',
+      business_account_id: data.business_account_id ?? '',
+      access_token: '',
+      app_secret: '',
+      webhook_verify_token: '',
+      enabled: !!data.enabled,
+    })
+    setLoaded(true)
+  }
+
+  const mutation = useMutation({
+    mutationFn: (d: typeof form) => profileApi.updateWhatsappSettings(d as unknown as Record<string, unknown>),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-settings'] })
+      toast.success('Configuración de WhatsApp guardada')
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Error al guardar configuración de WhatsApp'),
+  })
+
+  if (!can('configuracion.editar')) {
+    return (
+      <Card>
+        <CardContent className="pt-6 text-center text-muted-foreground py-8">
+          Sin permisos para editar la configuración de WhatsApp
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const maskedPlaceholder = (has: boolean, last4?: string | null) =>
+    has ? (last4 ? last4 : '••••••••') : ''
+
+  const field = (key: keyof typeof form, label: string, placeholder: string, secret = false) => (
+    <div className="space-y-1">
+      <Label htmlFor={`whatsapp-${key}`}>{label}</Label>
+      <Input
+        id={`whatsapp-${key}`}
+        type={secret ? 'password' : 'text'}
+        autoComplete="off"
+        value={form[key] as string}
+        placeholder={placeholder}
+        onChange={(e) => setForm(f => ({ ...f, [key]: e.target.value }))}
+      />
+      {secret && placeholder && (
+        <p className="text-xs text-muted-foreground">
+          Configurado actualmente ({placeholder}). Deja vacío para mantenerlo.
+        </p>
+      )}
+    </div>
+  )
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        {isPending ? (
+          <div className="space-y-3">
+            <div className="h-8 bg-muted animate-pulse rounded" />
+            <div className="h-8 bg-muted animate-pulse rounded" />
+            <div className="h-8 bg-muted animate-pulse rounded" />
+            <div className="h-8 bg-muted animate-pulse rounded" />
+            <div className="h-8 bg-muted animate-pulse rounded" />
+          </div>
+        ) : (
+          <form onSubmit={(e) => {
+            e.preventDefault()
+            mutation.mutate(form)
+          }} className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Conecta la clínica con la API de WhatsApp para enviar recordatorios y atender consultas automáticas.
+              Los campos secretos se guardan cifrados y nunca se muestran por completo.
+            </p>
+            <div className="flex items-center space-x-2">
+              <input
+                id="whatsapp-enabled"
+                type="checkbox"
+                checked={form.enabled}
+                onChange={(e) => setForm(f => ({ ...f, enabled: e.target.checked }))}
+                className="h-4 w-4 accent-primary cursor-pointer"
+              />
+              <Label htmlFor="whatsapp-enabled">Activar envío de mensajes WhatsApp</Label>
+            </div>
+            {field('phone_number_id', 'Phone Number ID', data?.phone_number_id ?? '')}
+            {field('business_account_id', 'Business Account ID', data?.business_account_id ?? '')}
+            {field('access_token', 'Access Token', maskedPlaceholder(data?.has_access_token, data?.access_token_last4), true)}
+            {field('app_secret', 'App Secret', maskedPlaceholder(data?.has_app_secret), true)}
+            {field('webhook_verify_token', 'Webhook Verify Token', maskedPlaceholder(data?.has_webhook_verify_token), true)}
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? 'Guardando...' : 'Guardar configuración'}
+            </Button>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function SettingsPage() {
   return (
     <div className="space-y-6">
@@ -686,10 +791,12 @@ export default function SettingsPage() {
           <TabsTrigger value="users">Usuarios</TabsTrigger>
           <TabsTrigger value="roles">Roles y Permisos</TabsTrigger>
           <TabsTrigger value="clinic">Datos de la Clínica</TabsTrigger>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
         </TabsList>
         <TabsContent value="users"><UsersTab /></TabsContent>
         <TabsContent value="roles"><RolesTab /></TabsContent>
         <TabsContent value="clinic"><ClinicDataTab /></TabsContent>
+        <TabsContent value="whatsapp"><WhatsappSettingsTab /></TabsContent>
       </Tabs>
     </div>
   )

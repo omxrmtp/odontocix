@@ -8,25 +8,25 @@ use Illuminate\Support\Facades\Log;
 class MetaWhatsappProvider implements WhatsappProviderInterface
 {
     private string $baseUrl;
-    private ?string $phoneNumberId;
-    private ?string $accessToken;
 
-    public function __construct()
+    public function __construct(private WhatsappConfigResolver $configResolver)
     {
         $this->baseUrl = 'https://graph.facebook.com/'.config('whatsapp.meta.api_version');
-        $this->phoneNumberId = config('whatsapp.meta.phone_number_id');
-        $this->accessToken = config('whatsapp.meta.access_token');
     }
 
     public function sendText(string $to, string $message): array
     {
-        if (! $this->phoneNumberId || ! $this->accessToken) {
+        $config = $this->configResolver->forTenant();
+        $phoneNumberId = $config['phone_number_id'];
+        $accessToken = $config['access_token'];
+
+        if (! $phoneNumberId || ! $accessToken) {
             throw new \RuntimeException('WhatsApp no configurado. Falta phone_number_id o access_token.');
         }
 
-        $url = "{$this->baseUrl}/{$this->phoneNumberId}/messages";
+        $url = "{$this->baseUrl}/{$phoneNumberId}/messages";
 
-        $response = Http::withToken($this->accessToken)
+        $response = Http::withToken($accessToken)
             ->post($url, [
                 'messaging_product' => 'whatsapp',
                 'recipient_type'    => 'individual',
@@ -48,11 +48,15 @@ class MetaWhatsappProvider implements WhatsappProviderInterface
 
     public function sendTemplate(string $to, string $templateName, array $parameters = [], string $language = 'es'): array
     {
-        if (! $this->phoneNumberId || ! $this->accessToken) {
+        $config = $this->configResolver->forTenant();
+        $phoneNumberId = $config['phone_number_id'];
+        $accessToken = $config['access_token'];
+
+        if (! $phoneNumberId || ! $accessToken) {
             throw new \RuntimeException('WhatsApp no configurado.');
         }
 
-        $url = "{$this->baseUrl}/{$this->phoneNumberId}/messages";
+        $url = "{$this->baseUrl}/{$phoneNumberId}/messages";
 
         $payload = [
             'messaging_product' => 'whatsapp',
@@ -74,7 +78,7 @@ class MetaWhatsappProvider implements WhatsappProviderInterface
             ];
         }
 
-        $response = Http::withToken($this->accessToken)->post($url, $payload);
+        $response = Http::withToken($accessToken)->post($url, $payload);
 
         if ($response->failed()) {
             Log::error('Meta WhatsApp sendTemplate failed', [
@@ -90,7 +94,7 @@ class MetaWhatsappProvider implements WhatsappProviderInterface
 
     public function verifySignature(string $payload, string $signature): bool
     {
-        $appSecret = config('whatsapp.meta.app_secret');
+        $appSecret = $this->configResolver->forTenant()['app_secret'];
         if (! $appSecret) {
             // Si no hay app_secret configurado, aceptar todo (modo desarrollo)
             return true;

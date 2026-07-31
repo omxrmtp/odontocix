@@ -106,6 +106,8 @@ export const profileApi = {
   password: (data: { current_password: string; password: string; password_confirmation: string }) => api.put('/profile/password', data).then(r => r.data),
   tenant: () => api.get('/tenant').then(r => r.data),
   updateTenant: (data: Record<string, unknown>) => api.put('/tenant', data).then(r => r.data),
+  whatsappSettings: () => api.get('/settings/whatsapp').then(r => r.data),
+  updateWhatsappSettings: (data: Record<string, unknown>) => api.put('/settings/whatsapp', data).then(r => r.data),
 }
 
 export function downloadBudgetPdf(id: number): Promise<Blob> {

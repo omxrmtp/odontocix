@@ -11,7 +11,11 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsappWebhookController extends Controller
 {
-    public function __construct(private WhatsappBotService $bot) {}
+    public function __construct(
+        private WhatsappBotService $bot,
+        private \App\Services\WhatsappProviderInterface $whatsapp,
+        private \App\Services\TenantService $tenantService,
+    ) {}
 
     /**
      * Verificación del webhook por Meta (GET).
@@ -38,18 +42,29 @@ class WhatsappWebhookController extends Controller
      */
     public function receive(Request $request): JsonResponse
     {
+        $entries = $request->input('entry', []);
+
+        // Resolver tenant por phone_number_id antes de validar la firma
+        $phoneNumberId = $this->resolveFirstPhoneNumberId($entries);
+        if ($phoneNumberId) {
+            $tenant = Tenant::query()
+                ->where('whatsapp_phone_number_id', $phoneNumberId)
+                ->first();
+
+            if ($tenant) {
+                $this->tenantService->setCurrent($tenant);
+            }
+        }
+
         // Verificar firma si está configurada
         $signature = $request->header('X-Hub-Signature-256');
         if ($signature) {
             $payload = $request->getContent();
-            $expected = 'sha256='.hash_hmac('sha256', $payload, config('whatsapp.meta.app_secret', ''));
-            if (! hash_equals($expected, $signature)) {
+            if (! $this->whatsapp->verifySignature($payload, $signature)) {
                 Log::warning('WhatsApp firma inválida');
                 return response()->json(['message' => 'Firma inválida.'], 401);
             }
         }
-
-        $entries = $request->input('entry', []);
 
         foreach ($entries as $entry) {
             foreach ($entry['changes'] ?? [] as $change) {
@@ -68,6 +83,21 @@ class WhatsappWebhookController extends Controller
         }
 
         return response()->json(['message' => 'OK']);
+    }
+
+    private function resolveFirstPhoneNumberId(array $entries): ?string
+    {
+        foreach ($entries as $entry) {
+            foreach ($entry['changes'] ?? [] as $change) {
+                $value = $change['value'] ?? [];
+                $phoneNumberId = $value['metadata']['phone_number_id'] ?? null;
+                if ($phoneNumberId) {
+                    return $phoneNumberId;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function processMessage(array $value, array $message): void
