@@ -2,12 +2,15 @@
 
 namespace App\Services;
 
+use App\Jobs\SendWhatsappMessage;
 use App\Models\Appointment;
-use App\Models\Patient;
 use App\Models\Doctor;
+use App\Models\Patient;
 
 class WhatsappService
 {
+    public function __construct(private WhatsappProviderInterface $provider) {}
+
     public function generatePatientReminder(Appointment $appointment): object
     {
         $patient = $appointment->patient;
@@ -59,5 +62,30 @@ class WhatsappService
     public function generateDoctorLink(Appointment $appointment): string
     {
         return $this->generateDoctorReminder($appointment)->url;
+    }
+
+    /**
+     * Encolar envío real de recordatorio al paciente vía Meta API.
+     */
+    public function queuePatientReminder(Appointment $appointment): void
+    {
+        $reminder = $this->generatePatientReminder($appointment);
+
+        SendWhatsappMessage::dispatch(
+            tenantId: $appointment->tenant_id,
+            appointmentId: $appointment->id,
+            recipientPhone: $appointment->patient->phone,
+            recipientType: 'patient',
+            messageTemplate: 'appointment_reminder',
+            message: $reminder->message,
+        );
+    }
+
+    /**
+     * Enviar mensaje de texto directo (para el bot).
+     */
+    public function sendText(string $to, string $message): void
+    {
+        $this->provider->sendText($to, $message);
     }
 }

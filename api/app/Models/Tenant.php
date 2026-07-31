@@ -16,6 +16,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     {
         return [
             'id', 'name', 'ruc', 'phone', 'address', 'email', 'estado',
+            'whatsapp_phone_number_id',
         ];
     }
 

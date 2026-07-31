@@ -14,6 +14,13 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(\App\Services\TenantService::class);
+
+        $this->app->singleton(\App\Services\WhatsappProviderInterface::class, function () {
+            return match (config('whatsapp.provider', 'meta')) {
+                'meta' => new \App\Services\MetaWhatsappProvider(),
+                default => new \App\Services\MetaWhatsappProvider(),
+            };
+        });
     }
 
     /**

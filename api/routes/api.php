@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\AvailableSlotController;
 use App\Http\Controllers\Api\BlockedDateController;
 use App\Http\Controllers\Api\OnlineBookingController;
 use App\Http\Controllers\Api\TreatmentController;
+use App\Http\Controllers\Api\WhatsappWebhookController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
@@ -134,6 +135,12 @@ Route::prefix('online-booking')->group(function () {
     Route::get('/doctors', [OnlineBookingController::class, 'doctors']);
     Route::get('/slots', [OnlineBookingController::class, 'slots']);
     Route::post('/appointments', [OnlineBookingController::class, 'book']);
+});
+
+// WhatsApp Webhooks (público — Meta verifica y envía aquí)
+Route::prefix('webhooks/whatsapp')->group(function () {
+    Route::get('/inbound', [WhatsappWebhookController::class, 'verify']);
+    Route::post('/inbound', [WhatsappWebhookController::class, 'receive']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {

@@ -53,11 +53,13 @@ class SendAppointmentReminders extends Command
 
             $appointment->update(['whatsapp_patient_sent' => true]);
 
-            $this->info("Cita {$appointment->id}: recordatorio WhatsApp generado para {$patient->first_name} {$patient->first_last_name} ({$reminder->url})");
-            Log::info("Recordatorio WhatsApp generado", [
+            // Encolar envío real por Meta API
+            $this->whatsapp->queuePatientReminder($appointment);
+
+            $this->info("Cita {$appointment->id}: recordatorio WhatsApp encolado para {$patient->first_name} {$patient->first_last_name}");
+            Log::info("Recordatorio WhatsApp encolado", [
                 'appointment_id' => $appointment->id,
                 'patient_id' => $patient->id,
-                'url' => $reminder->url,
             ]);
 
             if ($patient->email) {
