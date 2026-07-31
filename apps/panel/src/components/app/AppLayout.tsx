@@ -7,6 +7,7 @@ import {
   Home, Users, Stethoscope, Calendar, CalendarDays, Pill,
   FileSignature, Receipt, CreditCard, Wallet, Package, BarChart3,
   ClipboardList, Settings, UserCircle, LogOut, Menu, X, Sun, Moon,
+  MessageCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetClose } from '@/components/ui/sheet'
@@ -48,6 +49,7 @@ const nav: NavItem[] = [
   { href: '/inventario', label: 'Inventario', icon: Package, perm: 'inventario.ver' },
   { href: '/reportes', label: 'Reportes', icon: BarChart3, perm: 'reportes.ver' },
   { href: '/auditoria', label: 'Auditoría', icon: ClipboardList, perm: 'auditoria.ver' },
+  { href: '/whatsapp', label: 'WhatsApp', icon: MessageCircle, perm: 'configuracion.ver' },
   { href: '/configuracion', label: 'Configuración', icon: Settings, perm: 'configuracion.ver' },
   { href: '/perfil', label: 'Perfil', icon: UserCircle, perm: null },
 ]

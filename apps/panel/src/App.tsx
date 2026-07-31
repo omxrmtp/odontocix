@@ -27,6 +27,7 @@ const AvailableSlotsPage = lazy(() => import('@/pages/AvailableSlotsPage'))
 const AuditLogsPage = lazy(() => import('@/pages/AuditLogsPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
+const WhatsappSettingsPage = lazy(() => import('@/pages/WhatsappSettingsPage'))
 const ReportsPage = lazy(() => import('@/pages/ReportsPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
@@ -64,6 +65,7 @@ function AppRoutes() {
         <Route path="auditoria" element={<ProtectedRoute permission="auditoria.ver"><AuditLogsPage /></ProtectedRoute>} />
         <Route path="perfil" element={<ProfilePage />} />
         <Route path="configuracion" element={<ProtectedRoute permission="configuracion.ver"><SettingsPage /></ProtectedRoute>} />
+        <Route path="whatsapp" element={<ProtectedRoute permission="configuracion.ver"><WhatsappSettingsPage /></ProtectedRoute>} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
