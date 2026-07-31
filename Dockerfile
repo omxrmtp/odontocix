@@ -31,7 +31,7 @@ RUN apk add --no-cache \
     gettext-dev \
     icu-dev \
     linux-headers \
-    libcurl-dev \
+    curl-dev \
     $PHPIZE_DEPS
 
 RUN docker-php-ext-install \
