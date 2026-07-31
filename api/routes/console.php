@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('reminders:send')->dailyAt('09:00');
 Schedule::command('idempotency:cleanup')->weekly();
+Schedule::command('sunat:resend-pending')->everyFiveMinutes();

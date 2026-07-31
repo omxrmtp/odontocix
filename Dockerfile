@@ -31,6 +31,7 @@ RUN apk add --no-cache \
     gettext-dev \
     icu-dev \
     linux-headers \
+    libcurl-dev \
     $PHPIZE_DEPS
 
 RUN docker-php-ext-install \
@@ -45,7 +46,9 @@ RUN docker-php-ext-install \
     opcache \
     intl \
     xml \
-    dom
+    dom \
+    soap \
+    curl
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 

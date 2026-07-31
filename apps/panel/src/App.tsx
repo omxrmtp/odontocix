@@ -19,6 +19,7 @@ const PatientHistoryPage = lazy(() => import('@/pages/PatientHistoryPage'))
 const DoctorsPage = lazy(() => import('@/pages/DoctorsPage'))
 const BudgetsPage = lazy(() => import('@/pages/BudgetsPage'))
 const PaymentsPage = lazy(() => import('@/pages/PaymentsPage'))
+const ComprobantesPage = lazy(() => import('@/pages/ComprobantesPage'))
 const CashPage = lazy(() => import('@/pages/CashPage'))
 const InventoryPage = lazy(() => import('@/pages/InventoryPage'))
 const TreatmentsPage = lazy(() => import('@/pages/TreatmentsPage'))
@@ -28,6 +29,7 @@ const AuditLogsPage = lazy(() => import('@/pages/AuditLogsPage'))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const WhatsappSettingsPage = lazy(() => import('@/pages/WhatsappSettingsPage'))
+const SunatSettingsPage = lazy(() => import('@/pages/SunatSettingsPage'))
 const ReportsPage = lazy(() => import('@/pages/ReportsPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
@@ -56,6 +58,7 @@ function AppRoutes() {
         <Route path="doctores" element={<ProtectedRoute permission="doctores.ver"><DoctorsPage /></ProtectedRoute>} />
         <Route path="presupuestos" element={<ProtectedRoute permission="presupuestos.ver"><BudgetsPage /></ProtectedRoute>} />
         <Route path="pagos" element={<ProtectedRoute permission="pagos.ver"><PaymentsPage /></ProtectedRoute>} />
+        <Route path="comprobantes" element={<ProtectedRoute permission="pagos.ver"><ComprobantesPage /></ProtectedRoute>} />
         <Route path="caja" element={<ProtectedRoute permission="caja.ver"><CashPage /></ProtectedRoute>} />
         <Route path="inventario" element={<ProtectedRoute permission="inventario.ver"><InventoryPage /></ProtectedRoute>} />
         <Route path="tratamientos" element={<ProtectedRoute permission="tratamientos.ver"><TreatmentsPage /></ProtectedRoute>} />
@@ -66,6 +69,7 @@ function AppRoutes() {
         <Route path="perfil" element={<ProfilePage />} />
         <Route path="configuracion" element={<ProtectedRoute permission="configuracion.ver"><SettingsPage /></ProtectedRoute>} />
         <Route path="whatsapp" element={<ProtectedRoute permission="configuracion.ver"><WhatsappSettingsPage /></ProtectedRoute>} />
+        <Route path="sunat" element={<ProtectedRoute permission="configuracion.ver"><SunatSettingsPage /></ProtectedRoute>} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

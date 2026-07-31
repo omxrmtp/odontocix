@@ -44,6 +44,20 @@ export const paymentsApi = {
     api.get(`/budgets/${budgetId}/balance`).then(r => r.data),
 }
 
+export const comprobantesApi = {
+  list: (params?: Record<string, string>) =>
+    api.get('/comprobantes', { params }).then(r => r.data),
+  create: (data: Record<string, unknown>) =>
+    api.post('/comprobantes', data).then(r => r.data),
+  show: (id: number) =>
+    api.get(`/comprobantes/${id}`).then(r => r.data),
+  resend: (id: number) =>
+    api.post(`/comprobantes/${id}/resend`).then(r => r.data),
+  xmlUrl: (id: number) => `/comprobantes/${id}/xml`,
+  cdrUrl: (id: number) => `/comprobantes/${id}/cdr`,
+  pdfUrl: (id: number) => `/pdf/comprobantes/${id}`,
+}
+
 export const cashApi = {
   list: (params?: Record<string, string>) =>
     api.get('/cash', { params }).then(r => r.data),
@@ -108,6 +122,9 @@ export const profileApi = {
   updateTenant: (data: Record<string, unknown>) => api.put('/tenant', data).then(r => r.data),
   whatsappSettings: () => api.get('/settings/whatsapp').then(r => r.data),
   updateWhatsappSettings: (data: Record<string, unknown>) => api.put('/settings/whatsapp', data).then(r => r.data),
+  sunatSettings: () => api.get('/settings/sunat').then(r => r.data),
+  updateSunatSettings: (data: Record<string, unknown>) => api.put('/settings/sunat', data).then(r => r.data),
+  testSunatSettings: () => api.post('/settings/sunat/test').then(r => r.data),
 }
 
 export function downloadBudgetPdf(id: number): Promise<Blob> {

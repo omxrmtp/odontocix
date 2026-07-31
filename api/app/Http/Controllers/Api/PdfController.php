@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Budget;
+use App\Models\Comprobante;
 use App\Models\ConsentForm;
 use App\Models\Patient;
 use App\Models\Payment;
+use BaconQrCode\Encoder\Encoder;
+use BaconQrCode\Encoder\ErrorCorrectionLevel;
+use BaconQrCode\Renderer\GDLibRenderer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -20,6 +24,7 @@ class PdfController extends Controller
             $pdf = Pdf::loadView($view, $data);
             $pdf->setPaper('A4', 'portrait');
             $pdf->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => false]);
+
             return $pdf->download($filename);
         } catch (\Throwable $e) {
             Log::error("PDF generation failed [{$view}]: {$e->getMessage()}", [
@@ -27,6 +32,7 @@ class PdfController extends Controller
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'message' => 'Error al generar el PDF. Intente nuevamente o contacte al administrador.',
                 'error' => $e->getMessage(),
@@ -82,7 +88,7 @@ class PdfController extends Controller
         $content = str_replace(
             ['{{patient_name}}', '{{patient_dni}}'],
             [
-                $form->patient->full_name ?? ($form->patient->first_name . ' ' . $form->patient->first_last_name),
+                $form->patient->full_name ?? ($form->patient->first_name.' '.$form->patient->first_last_name),
                 $form->patient->dni,
             ],
             $form->content
@@ -94,5 +100,50 @@ class PdfController extends Controller
             'patient' => $form->patient,
             'content' => $content,
         ], "consentimiento-{$form->id}.pdf");
+    }
+
+    public function comprobantePdf(Comprobante $comprobante): Response|JsonResponse
+    {
+        $comprobante->load(['payment.budget.items', 'patient']);
+        $tenant = auth()->user()->tenant;
+
+        $qr = $this->qrDataUri($comprobante, $tenant);
+
+        return $this->loadPdf('pdf.comprobante', [
+            'comprobante' => $comprobante,
+            'tenant' => $tenant,
+            'patient' => $comprobante->patient,
+            'qr' => $qr,
+        ], "{$comprobante->serie}-{$comprobante->correlativo}.pdf");
+    }
+
+    private function qrDataUri(Comprobante $comprobante, $tenant): ?string
+    {
+        try {
+            $content = implode('|', [
+                $tenant->ruc ?? '',
+                $comprobante->tipo_doc,
+                $comprobante->serie,
+                (string) $comprobante->correlativo,
+                number_format((float) $comprobante->mto_igv, 2, '.', ''),
+                number_format((float) $comprobante->mto_oper_gravadas, 2, '.', ''),
+                number_format((float) $comprobante->mto_imp_venta, 2, '.', ''),
+                $comprobante->created_at?->format('Y-m-d') ?? '',
+                $comprobante->doc_type ?? '1',
+                $comprobante->doc_number ?? '',
+            ]);
+
+            $renderer = new GDLibRenderer(160, 4, 'png');
+            $image = $renderer->render(Encoder::encode($content, new ErrorCorrectionLevel(ErrorCorrectionLevel::M)));
+
+            return 'data:image/png;base64,'.base64_encode($image);
+        } catch (\Throwable $e) {
+            Log::warning('QR generation failed for comprobante', [
+                'id' => $comprobante->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { paymentsApi, budgetsApi, downloadPaymentReceipt } from '@/lib/endpoints'
+import { paymentsApi, budgetsApi, comprobantesApi, downloadPaymentReceipt } from '@/lib/endpoints'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,11 +9,13 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { onlyDigits, onlyDecimal, cleanInput } from '@/lib/validation'
+import { onlyDigits, onlyDecimal } from '@/lib/validation'
 import MobileCardList from '@/components/app/MobileCardList'
 import ConfirmDialog from '@/components/app/ConfirmDialog'
 import SkeletonTable from '@/components/app/SkeletonTable'
 import { usePermission } from '@/hooks/usePermission'
+
+const methodLabel = (m: string) => m === 'cash' ? 'Efectivo' : m === 'transfer' ? 'Transferencia' : m === 'card' ? 'Tarjeta' : m
 
 export default function PaymentsPage() {
   const queryClient = useQueryClient()
@@ -22,16 +24,25 @@ export default function PaymentsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
-  const [form, setForm] = useState({ budget_id: '', amount: '', payment_method: 'cash', reference: '', notes: '' })
+  const [form, setForm] = useState({ patient_id: '', budget_id: '', amount: '', method: 'cash', payment_date: new Date().toISOString().slice(0, 10), reference: '', notes: '' })
   const [balance, setBalance] = useState<any>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [emitOpen, setEmitOpen] = useState(false)
+  const [emitPayment, setEmitPayment] = useState<any>(null)
+  const [emitForm, setEmitForm] = useState({ tipo_doc: '03', doc_number: '', name: '', address: '', note: '' })
+
+  const resetForm = () => {
+    setForm({ patient_id: '', budget_id: '', amount: '', method: 'cash', payment_date: new Date().toISOString().slice(0, 10), reference: '', notes: '' })
+    setBalance(null)
+    setErrors({})
+  }
 
   const { data: payments, isPending: loadingPayments } = useQuery({ queryKey: ['payments', search], queryFn: () => paymentsApi.list({ search }) })
   const { data: budgets, isPending: loadingBudgets } = useQuery({ queryKey: ['budgets-all'], queryFn: () => budgetsApi.list({ per_page: '100' }) })
 
   const createMutation = useMutation({
     mutationFn: (d: Record<string, unknown>) => paymentsApi.create(d),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['payments'] }); setDialogOpen(false); toast.success('Pago registrado') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['payments'] }); setDialogOpen(false); resetForm(); toast.success('Pago registrado') },
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Error'),
   })
 
@@ -41,11 +52,46 @@ export default function PaymentsPage() {
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Error'),
   })
 
+  const emitMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => comprobantesApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comprobantes'] })
+      queryClient.invalidateQueries({ queryKey: ['payments'] })
+      setEmitOpen(false)
+      toast.success('Comprobante emitido')
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Error'),
+  })
+
+  const openEmitModal = (p: any) => {
+    setEmitPayment(p)
+    setEmitForm({ tipo_doc: '03', doc_number: '', name: '', address: '', note: '' })
+    setEmitOpen(true)
+  }
+
+  const handleEmit = () => {
+    if (!emitPayment) return
+    const isFactura = emitForm.tipo_doc === '01'
+    if (isFactura) {
+      if (!/^\d{11}$/.test(emitForm.doc_number)) { toast.error('Ingrese un RUC válido (11 dígitos)'); return }
+      if (!emitForm.name.trim()) { toast.error('Ingrese la razón social'); return }
+    }
+    emitMutation.mutate({
+      payment_id: emitPayment.id,
+      tipo_doc: emitForm.tipo_doc,
+      doc_number: emitForm.doc_number || null,
+      name: emitForm.name || null,
+      address: emitForm.address || null,
+      note: emitForm.note || null,
+    })
+  }
+
   const handleBudgetChange = async (budgetId: string) => {
     setForm(f => ({ ...f, budget_id: budgetId }))
     if (budgetId) {
       const b = await paymentsApi.budgetBalance(Number(budgetId))
       setBalance(b)
+      setForm(f => ({ ...f, patient_id: b.patient_id ? String(b.patient_id) : f.patient_id }))
     } else {
       setBalance(null)
     }
@@ -62,13 +108,23 @@ export default function PaymentsPage() {
       return
     }
     createMutation.mutate({
+      patient_id: Number(form.patient_id),
       budget_id: Number(form.budget_id),
       amount: Number(form.amount),
-      payment_method: form.payment_method,
+      method: form.method,
+      payment_date: form.payment_date,
       reference: form.reference || null,
       notes: form.notes || null,
     })
   }
+
+  const renderActions = (p: any) => (
+    <div className="flex gap-1 flex-wrap">
+      <Button variant="outline" size="sm" onClick={() => downloadPaymentReceipt(p.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `recibo-${p.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch((e) => toast.error(e?.message ?? 'Error al descargar recibo'))}>Recibo</Button>
+      {canEditPayments && p.budget_id && <Button variant="secondary" size="sm" onClick={() => openEmitModal(p)}>Emitir</Button>}
+      {canEditPayments && <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(p.id)}>Eliminar</Button>}
+    </div>
+  )
 
   return (
     <div className="space-y-4">
@@ -76,7 +132,7 @@ export default function PaymentsPage() {
         <h1 className="text-3xl font-bold flex-shrink-0">Pagos</h1>
         <div className="flex items-center gap-2">
           <Input placeholder="Buscar pago..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full sm:w-64" />
-          {canEditPayments && <Button onClick={() => { setForm({ budget_id: '', amount: '', payment_method: 'cash', reference: '', notes: '' }); setBalance(null); setDialogOpen(true) }}>Registrar pago</Button>}
+          {canEditPayments && <Button onClick={() => { resetForm(); setDialogOpen(true) }}>Registrar pago</Button>}
         </div>
       </div>
 
@@ -91,7 +147,7 @@ export default function PaymentsPage() {
                 <TableHead>Monto</TableHead>
                 <TableHead>Método</TableHead>
                 <TableHead>Fecha</TableHead>
-                <TableHead className="w-44">Acciones</TableHead>
+                <TableHead className="w-56">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -105,14 +161,9 @@ export default function PaymentsPage() {
                     <TableCell>{p.budget?.patient?.first_name ?? '-'}</TableCell>
                     <TableCell>#{p.budget_id}</TableCell>
                     <TableCell className="font-mono">S/ {Number(p.amount).toFixed(2)}</TableCell>
-                    <TableCell>{p.payment_method === 'cash' ? 'Efectivo' : p.payment_method === 'transfer' ? 'Transferencia' : p.payment_method === 'card' ? 'Tarjeta' : p.payment_method}</TableCell>
-                    <TableCell>{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="outline" size="sm" onClick={() => downloadPaymentReceipt(p.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `recibo-${p.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch((e) => toast.error(e?.message ?? 'Error al descargar recibo'))}>Recibo</Button>
-                        {canEditPayments && <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(p.id)}>Eliminar</Button>}
-                      </div>
-                    </TableCell>
+                    <TableCell>{methodLabel(p.method)}</TableCell>
+                    <TableCell>{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell>{renderActions(p)}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -131,12 +182,9 @@ export default function PaymentsPage() {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   <span>Presupuesto #{p.budget_id}</span>
-                  <span className="ml-2">{p.payment_method === 'cash' ? 'Efectivo' : p.payment_method === 'transfer' ? 'Transferencia' : p.payment_method === 'card' ? 'Tarjeta' : p.payment_method}</span>
+                  <span className="ml-2">{methodLabel(p.method)}</span>
                 </div>
-                <div className="flex gap-1 pt-1">
-                  <Button variant="outline" size="sm" onClick={() => downloadPaymentReceipt(p.id).then(blob => { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `recibo-${p.id}.pdf`; a.click(); URL.revokeObjectURL(url); }).catch((e) => toast.error(e?.message ?? 'Error al descargar recibo'))}>Recibo</Button>
-                  {canEditPayments && <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(p.id)}>Eliminar</Button>}
-                </div>
+                <div className="flex gap-1 pt-1">{renderActions(p)}</div>
               </>
             )}
           />
@@ -169,8 +217,8 @@ export default function PaymentsPage() {
 
             {balance && (
               <div className="text-sm space-y-1 bg-muted p-3 rounded">
-                <p>Total presupuesto: S/ {Number(balance.total).toFixed(2)}</p>
-                <p>Pagado: S/ {Number(balance.paid).toFixed(2)}</p>
+                <p>Total presupuesto: S/ {Number(balance.grand_total ?? balance.total).toFixed(2)}</p>
+                <p>Pagado: S/ {Number(balance.total_paid ?? balance.paid).toFixed(2)}</p>
                 <p className="font-bold">Saldo pendiente: S/ {Number(balance.balance).toFixed(2)}</p>
               </div>
             )}
@@ -180,8 +228,12 @@ export default function PaymentsPage() {
               <Input className={errors.amount ? 'border-red-500' : ''} type="number" min={0} step={0.01} value={form.amount} onKeyDown={onlyDecimal} onChange={(e) => setForm(f => ({ ...f, amount: e.target.value }))} />
             </div>
             <div className="space-y-1">
+              <Label>Fecha de pago</Label>
+              <Input type="date" value={form.payment_date} onChange={(e) => setForm(f => ({ ...f, payment_date: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
               <Label>Método de pago</Label>
-              <Select value={form.payment_method} onValueChange={(v) => setForm(f => ({ ...f, payment_method: v }))}>
+              <Select value={form.method} onValueChange={(v) => setForm(f => ({ ...f, method: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Efectivo</SelectItem>
@@ -200,6 +252,49 @@ export default function PaymentsPage() {
             </div>
           </div>
           <DialogFooter><Button onClick={handleSave}>Registrar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emitOpen} onOpenChange={setEmitOpen}>
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-md">
+          <DialogHeader><DialogTitle>Emitir comprobante SUNAT</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm bg-muted p-3 rounded">
+              <p>Pago #{emitPayment?.id} - S/ {Number(emitPayment?.amount ?? 0).toFixed(2)}</p>
+            </div>
+            <div className="space-y-1">
+              <Label>Tipo de comprobante</Label>
+              <Select value={emitForm.tipo_doc} onValueChange={(v) => setEmitForm(f => ({ ...f, tipo_doc: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="03">Boleta</SelectItem>
+                  <SelectItem value="01">Factura</SelectItem>
+                </SelectContent>
+              </Select>
+              {emitForm.tipo_doc === '03' && <p className="text-xs text-muted-foreground">La boleta se emitirá a nombre del paciente con su DNI.</p>}
+            </div>
+            {emitForm.tipo_doc === '01' && (
+              <>
+                <div className="space-y-1">
+                  <Label>RUC</Label>
+                  <Input value={emitForm.doc_number} onKeyDown={onlyDigits} onChange={(e) => setEmitForm(f => ({ ...f, doc_number: e.target.value }))} maxLength={11} placeholder="20123456789" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Razón social</Label>
+                  <Input value={emitForm.name} onChange={(e) => setEmitForm(f => ({ ...f, name: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Dirección</Label>
+                  <Input value={emitForm.address} onChange={(e) => setEmitForm(f => ({ ...f, address: e.target.value }))} />
+                </div>
+              </>
+            )}
+            <div className="space-y-1">
+              <Label>Nota interna</Label>
+              <Input value={emitForm.note} onChange={(e) => setEmitForm(f => ({ ...f, note: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter><Button onClick={handleEmit} disabled={emitMutation.isPending}>Emitir</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

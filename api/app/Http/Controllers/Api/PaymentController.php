@@ -5,12 +5,20 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Budget;
 use App\Models\CashTransaction;
+use App\Models\Comprobante;
 use App\Models\Payment;
+use App\Services\ComprobanteService;
+use App\Services\SunatConfigResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
+    public function __construct(
+        private ComprobanteService $comprobanteService,
+        private SunatConfigResolver $configResolver,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $this->authorize('view', Payment::class);
@@ -44,12 +52,17 @@ class PaymentController extends Controller
             'type' => 'income',
             'amount' => $data['amount'],
             'category' => 'pago_tratamiento',
-            'concept' => 'Pago recibido - ' . ($data['reference'] ?? 'sin referencia'),
+            'concept' => 'Pago recibido - '.($data['reference'] ?? 'sin referencia'),
             'transaction_date' => $data['payment_date'],
             'payment_id' => $payment->id,
         ]);
 
-        return response()->json($payment->load('patient', 'budget'), 201);
+        $comprobante = null;
+        if (! empty($data['budget_id']) && $this->configResolver->enabled()) {
+            $comprobante = $this->comprobanteService->createFromPayment($payment, Comprobante::TIPO_BOLETA);
+        }
+
+        return response()->json($payment->load('patient', 'budget')->setAttribute('comprobante', $comprobante), 201);
     }
 
     public function show(Payment $payment): JsonResponse
@@ -76,6 +89,7 @@ class PaymentController extends Controller
 
         return response()->json([
             'budget_id' => $budget->id,
+            'patient_id' => $budget->patient_id,
             'grand_total' => $budget->grand_total,
             'total_paid' => $totalPaid,
             'balance' => $budget->grand_total - $totalPaid,

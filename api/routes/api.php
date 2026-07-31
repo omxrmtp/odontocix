@@ -5,42 +5,48 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AutomationController;
 use App\Http\Controllers\Api\AutomationTokenController;
+use App\Http\Controllers\Api\AvailableSlotController;
+use App\Http\Controllers\Api\BlockedDateController;
 use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\ClinicalRecordController;
+use App\Http\Controllers\Api\ComprobanteController;
 use App\Http\Controllers\Api\ConsentFormController;
 use App\Http\Controllers\Api\ConsentTemplateController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\OdontogramController;
+use App\Http\Controllers\Api\OnlineBookingController;
 use App\Http\Controllers\Api\PatientController;
-use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PatientPortalController;
 use App\Http\Controllers\Api\PatientTreatmentController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PdfController;
-use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\AvailableSlotController;
-use App\Http\Controllers\Api\BlockedDateController;
-use App\Http\Controllers\Api\OnlineBookingController;
-use App\Http\Controllers\Api\TreatmentController;
-use App\Http\Controllers\Api\WhatsappWebhookController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SunatSettingsController;
+use App\Http\Controllers\Api\TreatmentController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WhatsappSettingsController;
+use App\Http\Controllers\Api\WhatsappWebhookController;
+use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/debug/user-check', function (Illuminate\Http\Request $request) {
+Route::get('/debug/user-check', function (Request $request) {
     $email = $request->query('email', 'admin@odontocix.com');
     $appKey = config('app.key') ? 'SET' : 'MISSING';
     $dbDefault = config('database.default');
     $dbUrl = config('database.connections.pgsql.url');
-    $dbUrlSnippet = $dbUrl ? substr($dbUrl, 0, 40) . '...' : 'NULL';
+    $dbUrlSnippet = $dbUrl ? substr($dbUrl, 0, 40).'...' : 'NULL';
     $driverName = config("database.connections.{$dbDefault}.driver");
     $configCached = file_exists(base_path('bootstrap/cache/config.php'));
 
-    $user = \App\Models\User::where('email', $email)->first();
+    $user = User::where('email', $email)->first();
 
     $result = [
         'config_cached' => $configCached,
@@ -57,7 +63,7 @@ Route::get('/debug/user-check', function (Illuminate\Http\Request $request) {
         $result['user_email'] = $user->email;
         $result['user_tenant_id'] = $user->tenant_id;
         $result['hash_prefix'] = substr($user->password, 0, 7);
-        $result['hash_check'] = \Illuminate\Support\Facades\Hash::check('admin123456', $user->password);
+        $result['hash_check'] = Hash::check('admin123456', $user->password);
         $result['user_roles'] = $user->getRoleNames()->toArray();
     }
 
@@ -75,6 +81,7 @@ Route::get('/debug/db-connections', function () {
             'database' => $conn['database'] ?? 'N/A',
         ];
     }
+
     return response()->json([
         'default' => config('database.default'),
         'connections' => $result,
@@ -86,9 +93,10 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 
 Route::get('/debug/pdf-test', function () {
     try {
-        $pdf = Barryvdh\DomPDF\Facade\Pdf::loadHTML('<h1>PDF Test</h1><p>If you see this, DomPDF works.</p>');
+        $pdf = Pdf::loadHTML('<h1>PDF Test</h1><p>If you see this, DomPDF works.</p>');
+
         return $pdf->download('test.pdf');
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         return response()->json([
             'error' => $e->getMessage(),
             'class' => get_class($e),
@@ -100,12 +108,13 @@ Route::get('/debug/pdf-test', function () {
 
 Route::get('/debug/pdf-test-view', function () {
     try {
-        $pdf = Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.test', [
+        $pdf = Pdf::loadView('pdf.test', [
             'title' => 'Test de vista',
             'content' => 'Si ves esto, loadView funciona correctamente.',
         ]);
+
         return $pdf->download('test-view.pdf');
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         return response()->json([
             'error' => $e->getMessage(),
             'class' => get_class($e),
@@ -229,6 +238,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/cash/{transaction}', [CashRegisterController::class, 'destroy']);
     });
 
+    // Comprobantes SUNAT
+    Route::middleware('permission:pagos.ver')->group(function () {
+        Route::get('/comprobantes', [ComprobanteController::class, 'index']);
+        Route::get('/comprobantes/{comprobante}', [ComprobanteController::class, 'show']);
+        Route::get('/comprobantes/{comprobante}/xml', [ComprobanteController::class, 'downloadXml']);
+        Route::get('/comprobantes/{comprobante}/cdr', [ComprobanteController::class, 'downloadCdr']);
+    });
+    Route::middleware('permission:pagos.editar')->group(function () {
+        Route::post('/comprobantes', [ComprobanteController::class, 'store']);
+        Route::post('/comprobantes/{comprobante}/resend', [ComprobanteController::class, 'resend']);
+    });
+
     // Treatments
     Route::middleware('permission:tratamientos.ver')->group(function () {
         Route::get('/treatments', [TreatmentController::class, 'index']);
@@ -304,6 +325,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/pdf/budgets/{budget}', [PdfController::class, 'budgetPdf']);
     Route::get('/pdf/payments/{payment}/receipt', [PdfController::class, 'paymentReceipt']);
+    Route::get('/pdf/comprobantes/{comprobante}', [PdfController::class, 'comprobantePdf']);
     Route::get('/pdf/patients/{patient}/history', [PdfController::class, 'patientHistory']);
     Route::get('/pdf/consent-forms/{form}', [PdfController::class, 'consentFormPdf']);
 
@@ -317,6 +339,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/{user}', [UserController::class, 'show']);
         Route::get('/settings/whatsapp', [WhatsappSettingsController::class, 'show']);
+        Route::get('/settings/sunat', [SunatSettingsController::class, 'show']);
     });
 
     // Roles & Permissions — escritura requiere editar
@@ -330,6 +353,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{user}/role', [UserController::class, 'assignRole']);
         Route::put('/users/{user}/toggle-active', [UserController::class, 'toggleActive']);
         Route::put('/settings/whatsapp', [WhatsappSettingsController::class, 'update']);
+        Route::put('/settings/sunat', [SunatSettingsController::class, 'update']);
+        Route::post('/settings/sunat/test', [SunatSettingsController::class, 'test']);
     });
 
     // Automation API (tokens + endpoints)
@@ -353,6 +378,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::get('/user', function (Request $request) {
     $user = $request->user()->load('roles', 'permissions', 'tenant');
+
     return response()->json([
         'id' => $user->id,
         'name' => $user->name,
