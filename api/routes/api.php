@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AutomationController;
+use App\Http\Controllers\Api\AutomationTokenController;
 use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\ClinicalRecordController;
@@ -16,7 +18,6 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PatientTreatmentController;
 use App\Http\Controllers\Api\PdfController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\PatientPortalController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\AvailableSlotController;
@@ -319,6 +320,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
         Route::put('/users/{user}/role', [UserController::class, 'assignRole']);
         Route::put('/users/{user}/toggle-active', [UserController::class, 'toggleActive']);
+    });
+
+    // Automation API (tokens + endpoints)
+    Route::middleware('permission:configuracion.editar')->prefix('automation')->group(function () {
+        Route::get('/tokens', [AutomationTokenController::class, 'index']);
+        Route::post('/tokens', [AutomationTokenController::class, 'store']);
+        Route::delete('/tokens/{token}', [AutomationTokenController::class, 'destroy']);
+    });
+
+    Route::prefix('automation')->middleware(['throttle:automation'])->group(function () {
+        Route::get('/availability', [AutomationController::class, 'availability'])
+            ->middleware('ability:availability:read');
+        Route::post('/patients', [AutomationController::class, 'upsertPatient'])
+            ->middleware('ability:patients:write', 'idempotency:patients');
+        Route::get('/appointments', [AutomationController::class, 'appointments'])
+            ->middleware('ability:appointments:read');
+        Route::post('/appointments', [AutomationController::class, 'bookAppointment'])
+            ->middleware('ability:appointments:write', 'idempotency:appointments');
     });
 });
 

@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
-use App\Models\AvailableSlot;
 use App\Models\Doctor;
-use App\Models\Patient;
+use App\Services\AppointmentBookingService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class OnlineBookingController extends Controller
 {
+    public function __construct(
+        private AppointmentBookingService $booking
+    ) {}
+
     public function doctors(Request $request): JsonResponse
     {
         $doctors = Doctor::query()
@@ -36,18 +37,7 @@ class OnlineBookingController extends Controller
             'date' => 'required|date',
         ]);
 
-        $slots = AvailableSlot::where('doctor_id', $data['doctor_id'])
-            ->whereDate('date', $data['date'])
-            ->where('is_available', true)
-            ->where('is_booked', false)
-            ->orderBy('start_time')
-            ->get()
-            ->map(fn ($s) => [
-                'id' => $s->id,
-                'date' => $s->date->format('Y-m-d'),
-                'start_time' => Carbon::parse($s->start_time)->format('H:i'),
-                'end_time' => Carbon::parse($s->end_time)->format('H:i'),
-            ]);
+        $slots = $this->booking->availableSlots($data['doctor_id'], $data['date']);
 
         return response()->json($slots);
     }
@@ -63,54 +53,31 @@ class OnlineBookingController extends Controller
             'reason' => 'nullable|string|max:500',
         ]);
 
-        $slot = AvailableSlot::where('id', $data['slot_id'])
-            ->where('is_available', true)
-            ->where('is_booked', false)
-            ->lockForUpdate()
-            ->first();
+        $nameParts = explode(' ', trim($data['patient_name']), 2);
+        $patientData = [
+            'dni' => $data['patient_dni'],
+            'first_name' => $nameParts[0] ?? $data['patient_name'],
+            'first_last_name' => $nameParts[1] ?? '',
+            'phone' => $data['patient_phone'],
+            'email' => $data['patient_email'],
+        ];
 
-        if (! $slot) {
-            return response()->json(['message' => 'El horario seleccionado ya no está disponible.'], 409);
+        try {
+            $result = $this->booking->bookBySlot(
+                $data['slot_id'],
+                $patientData,
+                $data['reason']
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'El horario seleccionado ya no está disponible.',
+                'errors'  => $e->errors(),
+            ], 409);
         }
 
-        $appointment = DB::transaction(function () use ($data, $slot) {
-            $patient = Patient::where('dni', $data['patient_dni'])->first();
-
-            if (! $patient) {
-                $nameParts = explode(' ', trim($data['patient_name']), 2);
-                $firstName = $nameParts[0] ?? $data['patient_name'];
-                $lastName = $nameParts[1] ?? '';
-
-                $patient = Patient::create([
-                    'dni' => $data['patient_dni'],
-                    'first_name' => $firstName,
-                    'first_last_name' => $lastName,
-                    'phone' => $data['patient_phone'],
-                    'email' => $data['patient_email'],
-                ]);
-            }
-
-            $startDate = Carbon::parse($slot->date->format('Y-m-d') . ' ' . Carbon::parse($slot->start_time)->format('H:i:s'));
-            $endDate = Carbon::parse($slot->date->format('Y-m-d') . ' ' . Carbon::parse($slot->end_time)->format('H:i:s'));
-
-            $appointment = Appointment::create([
-                'patient_id' => $patient->id,
-                'doctor_id' => $slot->doctor_id,
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-                'status' => 'scheduled',
-                'reason' => $data['reason'],
-            ]);
-
-            $slot->update([
-                'is_booked' => true,
-                'is_available' => false,
-            ]);
-
-            return $appointment->load(['patient', 'doctor']);
-        });
-
-        $tenant = \App::make(\App\Services\TenantService::class)->current();
+        $appointment = $result['appointment'];
+        $slot        = $result['slot'];
+        $tenant      = app(\App\Services\TenantService::class)->current();
 
         return response()->json([
             'message' => 'Cita reservada con éxito.',

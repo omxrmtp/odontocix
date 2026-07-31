@@ -25,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'ability' => \App\Http\Middleware\EnsureTokenAbility::class,
+            'idempotency' => \App\Http\Middleware\IdempotencyMiddleware::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => null);

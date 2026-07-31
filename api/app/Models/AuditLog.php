@@ -10,6 +10,7 @@ class AuditLog extends BaseModel
         'tenant_id',
         'user_id',
         'user_name',
+        'source',
         'action',
         'resource_type',
         'resource_id',
