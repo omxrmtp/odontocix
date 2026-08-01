@@ -92,6 +92,18 @@ class SunatSettingsController extends Controller
     {
         $tenant = $request->user()->tenant;
 
+        if ($tenant->is_demo) {
+            return response()->json([
+                'message' => 'Modo demo: conexión simulada con SUNAT (no se enviaron datos).',
+                'certificate' => [
+                    'name' => 'demo-cert.pfx',
+                    'valid_from' => now()->subYear()->format('Y-m-d'),
+                    'expires_at' => now()->addYears(2)->format('Y-m-d'),
+                    'issuer' => 'DEMO CA',
+                ],
+            ]);
+        }
+
         if (empty($tenant->sunat_certificate)) {
             return response()->json([
                 'message' => 'Primero sube el certificado digital (.pfx) para poder probar la conexión.',

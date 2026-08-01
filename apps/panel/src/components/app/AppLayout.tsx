@@ -7,7 +7,7 @@ import {
   Home, Users, Stethoscope, Calendar, CalendarDays, Pill,
   FileSignature, Receipt, CreditCard, Wallet, Package, BarChart3,
   ClipboardList, Settings, UserCircle, LogOut, Menu, X, Sun, Moon,
-  MessageCircle, FileText,
+  MessageCircle, FileText, FlaskConical,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetClose } from '@/components/ui/sheet'
@@ -117,6 +117,7 @@ export default function AppLayout() {
   const { user, loading, logout } = useAuth()
   const { canView } = usePermission()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showDemoBanner, setShowDemoBanner] = useState(true)
 
   const visibleNav = nav.filter(item => !item.perm || canView(item.perm))
 
@@ -158,6 +159,17 @@ export default function AppLayout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <MobileTopBar onMenuClick={() => setSidebarOpen(true)} />
+        {user.is_demo && showDemoBanner && (
+          <div className="flex items-center gap-2 border-b bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-400">
+            <FlaskConical className="w-4 h-4 shrink-0" />
+            <span className="flex-1">
+              Estás en modo demo: los datos que crees o modifiques <strong>no se guardan</strong> y se eliminan al cerrar la sesión.
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => setShowDemoBanner(false)} aria-label="Ocultar aviso demo">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
           <ErrorBoundary>
             <Outlet />

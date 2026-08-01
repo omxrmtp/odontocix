@@ -29,11 +29,13 @@ class SendAppointmentReminders extends Command
         $appointments = Appointment::whereBetween('start_date', [$from, $to])
             ->where('whatsapp_patient_sent', false)
             ->whereIn('status', ['scheduled', 'confirmed'])
+            ->whereHas('patient', fn ($q) => $q->whereHas('tenant', fn ($t) => $t->where('is_demo', false)))
             ->with(['patient', 'doctor'])
             ->get();
 
         if ($appointments->isEmpty()) {
-            $this->info('No hay citas pendientes de recordatorio entre ' . $from->format('d/m/Y H:i') . ' y ' . $to->format('d/m/Y H:i'));
+            $this->info('No hay citas pendientes de recordatorio entre '.$from->format('d/m/Y H:i').' y '.$to->format('d/m/Y H:i'));
+
             return self::SUCCESS;
         }
 
@@ -46,6 +48,7 @@ class SendAppointmentReminders extends Command
 
             if (! $patient) {
                 $this->warn("Cita {$appointment->id}: paciente no encontrado. Saltando.");
+
                 continue;
             }
 
@@ -57,7 +60,7 @@ class SendAppointmentReminders extends Command
             $this->whatsapp->queuePatientReminder($appointment);
 
             $this->info("Cita {$appointment->id}: recordatorio WhatsApp encolado para {$patient->first_name} {$patient->first_last_name}");
-            Log::info("Recordatorio WhatsApp encolado", [
+            Log::info('Recordatorio WhatsApp encolado', [
                 'appointment_id' => $appointment->id,
                 'patient_id' => $patient->id,
             ]);
@@ -69,7 +72,7 @@ class SendAppointmentReminders extends Command
                     $emailCount++;
                 } catch (\Exception $e) {
                     $this->warn("Cita {$appointment->id}: fallo al enviar email: {$e->getMessage()}");
-                    Log::error("Fallo al enviar email de recordatorio", [
+                    Log::error('Fallo al enviar email de recordatorio', [
                         'appointment_id' => $appointment->id,
                         'error' => $e->getMessage(),
                     ]);

@@ -11,8 +11,10 @@ class ConsentTemplateSeeder extends Seeder
 {
     public function run(TenantService $tenantService): void
     {
-        $tenant = Tenant::first();
-        if (!$tenant) return;
+        $tenant = Tenant::where('is_demo', true)->first() ?? Tenant::first();
+        if (! $tenant) {
+            return;
+        }
 
         $tenantService->setCurrent($tenant);
 

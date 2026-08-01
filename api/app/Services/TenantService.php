@@ -22,4 +22,14 @@ class TenantService
     {
         return $this->currentTenant?->id;
     }
+
+    /**
+     * Determina si el tenant activo es un entorno demo (rollback por request).
+     */
+    public static function isDemo(): bool
+    {
+        $service = app(self::class);
+
+        return (bool) ($service->current()?->is_demo ?? false);
+    }
 }

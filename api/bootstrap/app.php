@@ -1,12 +1,17 @@
 <?php
 
+use App\Http\Middleware\DemoMiddleware;
+use App\Http\Middleware\EnsureTokenAbility;
+use App\Http\Middleware\IdempotencyMiddleware;
 use App\Http\Middleware\TenantMiddleware;
-use App\Services\TenantService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,15 +23,16 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             TenantMiddleware::class,
+            DemoMiddleware::class,
         ]);
 
         $middleware->alias([
             'tenant' => TenantMiddleware::class,
-            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
-            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
-            'ability' => \App\Http\Middleware\EnsureTokenAbility::class,
-            'idempotency' => \App\Http\Middleware\IdempotencyMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'role' => RoleMiddleware::class,
+            'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'ability' => EnsureTokenAbility::class,
+            'idempotency' => IdempotencyMiddleware::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => null);
@@ -40,7 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json(['message' => 'Unauthenticated'], 401);
         });
 
-        $exceptions->render(function (\RuntimeException $e, Request $request) {
+        $exceptions->render(function (RuntimeException $e, Request $request) {
             if ($request->is('api/*') && str_contains($e->getMessage(), 'No se encontró un tenant activo')) {
                 return response()->json(['message' => $e->getMessage()], 400);
             }

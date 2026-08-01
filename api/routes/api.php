@@ -90,6 +90,7 @@ Route::get('/debug/db-connections', function () {
 
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/demo-login', [AuthController::class, 'demoLogin']);
 
 Route::get('/debug/pdf-test', function () {
     try {
@@ -385,6 +386,7 @@ Route::get('/user', function (Request $request) {
         'email' => $user->email,
         'is_active' => $user->is_active,
         'tenant_id' => $user->tenant_id,
+        'is_demo' => (bool) ($user->tenant?->is_demo ?? false),
         'roles' => $user->roles->map(fn ($r) => ['id' => $r->id, 'name' => $r->name]),
         'permissions' => $user->getAllPermissions()->pluck('name'),
         'tenant' => $user->tenant,

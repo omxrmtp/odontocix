@@ -16,7 +16,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public static function getCustomColumns(): array
     {
         return [
-            'id', 'name', 'ruc', 'phone', 'address', 'email', 'estado',
+            'id', 'name', 'ruc', 'phone', 'address', 'email', 'estado', 'is_demo',
             'whatsapp_phone_number_id', 'whatsapp_access_token', 'whatsapp_business_account_id',
             'whatsapp_app_secret', 'whatsapp_webhook_verify_token', 'whatsapp_enabled',
             'sunat_enabled', 'sunat_environment', 'sunat_certificate', 'sunat_certificate_password',
@@ -38,6 +38,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'sunat_certificate_password' => 'encrypted',
             'sunat_sol_password' => 'encrypted',
             'sunat_enabled' => 'boolean',
+            'is_demo' => 'boolean',
         ]);
     }
 

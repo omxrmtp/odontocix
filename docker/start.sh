@@ -29,5 +29,9 @@ php artisan cache:clear 2>&1 || true
 echo "Creating admin user..." >&2
 php artisan app:create-admin 2>&1
 
+# Seed demo tenant with sample data
+echo "Seeding demo data..." >&2
+php artisan db:seed --class=DemoSeeder --force --no-interaction 2>&1 || true
+
 echo "Starting services..." >&2
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

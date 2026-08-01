@@ -6,6 +6,7 @@ export interface User {
   email: string
   is_active: boolean
   tenant_id: string | null
+  is_demo: boolean
   roles: { id: number; name: string }[]
   permissions: string[]
   tenant?: { id: string; name: string; ruc: string; phone: string; address: string; email: string }
@@ -13,6 +14,13 @@ export interface User {
 
 export async function login(email: string, password: string): Promise<User> {
   const { data } = await api.post<User & { token: string }>('/auth/login', { email, password })
+  setToken(data.token)
+  const { token: _token, ...user } = data
+  return user
+}
+
+export async function demoLogin(): Promise<User> {
+  const { data } = await api.post<User & { token: string }>('/auth/demo-login')
   setToken(data.token)
   const { token: _token, ...user } = data
   return user

@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { getUser, login as apiLogin, logout as apiLogout, type User } from '@/lib/auth'
-import { setToken, setOnUnauthorized } from '@/lib/api'
+import { getUser, login as apiLogin, demoLogin as apiDemoLogin, logout as apiLogout, type User } from '@/lib/auth'
+import { setOnUnauthorized } from '@/lib/api'
 
 interface AuthContextType {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
+  loginDemo: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -47,8 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u)
   }
 
+  const loginDemo = async () => {
+    const u = await apiDemoLogin()
+    setUser(u)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, loginDemo, logout }}>
       {children}
     </AuthContext.Provider>
   )

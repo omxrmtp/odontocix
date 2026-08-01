@@ -2,13 +2,22 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\InventoryItem;
+use App\Models\Tenant;
+use App\Services\TenantService;
+use Illuminate\Database\Seeder;
 
 class InventorySeeder extends Seeder
 {
-    public function run(): void
+    public function run(TenantService $tenantService): void
     {
+        $tenant = Tenant::where('is_demo', true)->first() ?? Tenant::first();
+        if (! $tenant) {
+            return;
+        }
+
+        $tenantService->setCurrent($tenant);
+
         $items = [
             [
                 'name' => 'Guantes de látex',
@@ -258,7 +267,10 @@ class InventorySeeder extends Seeder
         ];
 
         foreach ($items as $item) {
-            InventoryItem::create($item);
+            InventoryItem::firstOrCreate(
+                ['tenant_id' => $tenant->id, 'sku' => $item['sku']],
+                $item
+            );
         }
     }
 }

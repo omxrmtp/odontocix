@@ -15,12 +15,14 @@ class AuthController extends Controller
     private function userResponse(User $user): array
     {
         $user->load('roles', 'permissions', 'tenant');
+
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'is_active' => $user->is_active,
             'tenant_id' => $user->tenant_id,
+            'is_demo' => (bool) ($user->tenant?->is_demo ?? false),
             'roles' => $user->roles->map(fn ($r) => ['id' => $r->id, 'name' => $r->name])->toArray(),
             'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
             'tenant' => $user->tenant,
@@ -101,6 +103,26 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Sesión cerrada.']);
+    }
+
+    public function demoLogin(Request $request): JsonResponse
+    {
+        $email = env('DEMO_USER_EMAIL', 'demo@odontocix.com');
+
+        $user = User::where('email', $email)->first();
+
+        if (! $user || ! ($user->is_active ?? true) || ! $user->tenant?->is_demo) {
+            throw ValidationException::withMessages([
+                'email' => ['La cuenta demo no está disponible.'],
+            ]);
+        }
+
+        $token = $user->createToken('auth')->plainTextToken;
+
+        return response()->json([
+            ...$this->userResponse($user),
+            'token' => $token,
+        ]);
     }
 
     public function me(Request $request): JsonResponse

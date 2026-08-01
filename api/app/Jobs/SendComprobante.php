@@ -44,6 +44,12 @@ class SendComprobante implements ShouldQueue
 
         app(TenantService::class)->setCurrent($comprobante->tenant);
 
+        if (TenantService::isDemo()) {
+            Log::info('Comprobante omitido (entorno demo)', ['id' => $comprobante->id]);
+
+            return;
+        }
+
         try {
             $service->send($comprobante);
 

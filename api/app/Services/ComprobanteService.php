@@ -85,7 +85,9 @@ class ComprobanteService
             'estado' => Comprobante::ESTADO_PENDIENTE,
         ]);
 
-        SendComprobante::dispatch($comprobante->id);
+        if (! TenantService::isDemo()) {
+            SendComprobante::dispatch($comprobante->id);
+        }
 
         return $comprobante;
     }
@@ -163,6 +165,10 @@ class ComprobanteService
 
     public function send(Comprobante $comprobante): void
     {
+        if (TenantService::isDemo()) {
+            return;
+        }
+
         $see = $this->seeFactory->forTenant(Tenant::find($comprobante->tenant_id));
         $invoice = $this->buildInvoice($comprobante);
 

@@ -4,8 +4,6 @@ namespace App\Services;
 
 use App\Jobs\SendWhatsappMessage;
 use App\Models\Appointment;
-use App\Models\Doctor;
-use App\Models\Patient;
 
 class WhatsappService
 {
@@ -17,7 +15,7 @@ class WhatsappService
         $doctor = $appointment->doctor;
 
         $message = sprintf(
-            "Hola %s, le recordamos su cita el %s a las %s con el Dr. %s. Motivo: %s.",
+            'Hola %s, le recordamos su cita el %s a las %s con el Dr. %s. Motivo: %s.',
             explode(' ', $patient->first_name)[0],
             $appointment->start_date->format('d/m/Y'),
             $appointment->start_date->format('H:i'),
@@ -25,7 +23,7 @@ class WhatsappService
             $appointment->reason ?? 'consulta',
         );
 
-        $url = 'https://wa.me/51' . preg_replace('/[^0-9]/', '', $patient->phone) . '?text=' . urlencode($message);
+        $url = 'https://wa.me/51'.preg_replace('/[^0-9]/', '', $patient->phone).'?text='.urlencode($message);
 
         return (object) ['url' => $url, 'message' => $message];
     }
@@ -40,7 +38,7 @@ class WhatsappService
         }
 
         $message = sprintf(
-            "Dr. %s, tiene cita con %s %s el %s a las %s. Motivo: %s.",
+            'Dr. %s, tiene cita con %s %s el %s a las %s. Motivo: %s.',
             $doctor->first_last_name,
             $patient->first_name,
             $patient->first_last_name,
@@ -49,7 +47,7 @@ class WhatsappService
             $appointment->reason ?? 'consulta',
         );
 
-        $url = 'https://wa.me/51' . preg_replace('/[^0-9]/', '', $doctor->phone) . '?text=' . urlencode($message);
+        $url = 'https://wa.me/51'.preg_replace('/[^0-9]/', '', $doctor->phone).'?text='.urlencode($message);
 
         return (object) ['url' => $url, 'message' => $message];
     }
@@ -86,6 +84,10 @@ class WhatsappService
      */
     public function sendText(string $to, string $message): void
     {
+        if (TenantService::isDemo()) {
+            return;
+        }
+
         $this->provider->sendText($to, $message);
     }
 }

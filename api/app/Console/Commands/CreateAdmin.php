@@ -11,61 +11,123 @@ use Spatie\Permission\Models\Role;
 class CreateAdmin extends Command
 {
     protected $signature = 'app:create-admin';
-    protected $description = 'Create or reset the super admin user for demo';
+
+    protected $description = 'Create or reset the super admin and demo users';
 
     public function handle(): int
     {
-        $email = env('DEMO_ADMIN_EMAIL', 'admin@odontocix.com');
-        $password = env('DEMO_ADMIN_PASSWORD', 'admin123456');
-
-        $this->info("Email: {$email}");
-
-        // Ensure role exists
-        if (!Role::where('name', 'Super Admin')->exists()) {
+        if (! Role::where('name', 'Super Admin')->exists()) {
             $this->error('Super Admin role not found. Run RoleSeeder first.');
+
             return 1;
         }
 
-        // Ensure tenant exists
+        $this->ensureRealAdmin();
+        $this->ensureDemoUser();
+
+        return 0;
+    }
+
+    private function ensureRealAdmin(): void
+    {
+        $email = $this->env('ADMIN_EMAIL', 'DEMO_ADMIN_EMAIL', 'admin@odontocix.com');
+        $password = $this->env('ADMIN_PASSWORD', 'DEMO_ADMIN_PASSWORD', 'admin123456');
+
         $tenant = Tenant::firstOrCreate(
-            ['email' => env('DEMO_TENANT_EMAIL', 'demo@odontocix.com')],
+            ['email' => $this->env('ADMIN_TENANT_EMAIL', null, 'admin@odontocix.com')],
             [
-                'name' => 'Clinica Demo',
-                'ruc' => '12345678901',
-                'phone' => '999000000',
-                'address' => 'Av. Demostracion 123',
+                'name' => $this->env('ADMIN_TENANT_NAME', null, 'OdontoCix'),
+                'ruc' => $this->env('ADMIN_TENANT_RUC', null, '20123456789'),
+                'phone' => $this->env('ADMIN_TENANT_PHONE', null, '999111222'),
+                'address' => $this->env('ADMIN_TENANT_ADDRESS', null, 'Av. Principal 123'),
                 'estado' => 'active',
+                'is_demo' => false,
             ]
         );
-        $this->info("Tenant: {$tenant->name} ({$tenant->id})");
 
-        // Create or update admin user
+        if ($tenant->is_demo) {
+            $tenant->update(['is_demo' => false]);
+        }
+
+        $this->upsertUser($email, $password, 'Super Admin', $tenant);
+
+        $this->info("Admin tenant: {$tenant->name} ({$tenant->id})");
+        $this->info("Admin email: {$email}");
+    }
+
+    private function ensureDemoUser(): void
+    {
+        $email = $this->env('DEMO_USER_EMAIL', null, 'demo@odontocix.com');
+        $password = $this->env('DEMO_USER_PASSWORD', null, 'demo123456');
+
+        $tenant = Tenant::firstOrCreate(
+            ['email' => $this->env('DEMO_TENANT_EMAIL', null, 'demo@odontocix.com')],
+            [
+                'name' => $this->env('DEMO_TENANT_NAME', null, 'Clínica Demo'),
+                'ruc' => $this->env('DEMO_TENANT_RUC', null, '12345678901'),
+                'phone' => $this->env('DEMO_TENANT_PHONE', null, '999000000'),
+                'address' => $this->env('DEMO_TENANT_ADDRESS', null, 'Av. Demostración 123'),
+                'estado' => 'active',
+                'is_demo' => true,
+            ]
+        );
+
+        if (! $tenant->is_demo) {
+            $tenant->update(['is_demo' => true]);
+        }
+
+        $this->upsertUser($email, $password, 'Usuario Demo', $tenant);
+
+        $this->info("Demo tenant: {$tenant->name} ({$tenant->id})");
+        $this->info("Demo email: {$email}");
+    }
+
+    private function upsertUser(string $email, string $password, string $name, Tenant $tenant): User
+    {
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
-            $user = new User();
-            $user->name = 'Super Admin';
+        if (! $user) {
+            $user = new User;
+            $user->name = $name;
             $user->email = $email;
             $user->password = $password;
             $user->tenant_id = $tenant->id;
             $user->save();
             $user->assignRole('Super Admin');
-            $this->info("Admin user CREATED (id={$user->id})");
+            $this->info("User CREATED (id={$user->id}): {$email}");
         } else {
+            $user->name = $name;
             $user->password = $password;
             $user->tenant_id = $tenant->id;
             $user->save();
-            if (!$user->hasRole('Super Admin')) {
+            if (! $user->hasRole('Super Admin')) {
                 $user->assignRole('Super Admin');
             }
-            $this->info("Admin user UPDATED (id={$user->id})");
+            $this->info("User UPDATED (id={$user->id}): {$email}");
         }
 
-        // Verify password hash
         $fresh = User::where('email', $email)->first();
-        $check = Hash::check($password, $fresh->password);
-        $this->info("Password verify: " . ($check ? 'OK' : 'FAILED'));
+        $this->info('Password verify: '.(Hash::check($password, $fresh->password) ? 'OK' : 'FAILED'));
 
-        return 0;
+        return $user;
+    }
+
+    private function env(string $key, ?string $fallbackKey, string $default): string
+    {
+        $value = env($key);
+
+        if (! empty($value)) {
+            return $value;
+        }
+
+        if ($fallbackKey !== null) {
+            $value = env($fallbackKey);
+
+            if (! empty($value)) {
+                return $value;
+            }
+        }
+
+        return $default;
     }
 }

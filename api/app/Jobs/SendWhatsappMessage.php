@@ -2,7 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Models\Tenant;
 use App\Models\WhatsappOutbox;
+use App\Services\TenantService;
 use App\Services\WhatsappProviderInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -16,6 +18,7 @@ class SendWhatsappMessage implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public int $timeout = 60;
 
     public function __construct(
@@ -32,7 +35,15 @@ class SendWhatsappMessage implements ShouldQueue
     public function handle(WhatsappProviderInterface $whatsapp): void
     {
         try {
-            app(\App\Services\TenantService::class)->setCurrent(\App\Models\Tenant::find($this->tenantId));
+            app(TenantService::class)->setCurrent(Tenant::find($this->tenantId));
+
+            if (TenantService::isDemo()) {
+                Log::info('WhatsApp message omitted (entorno demo)', [
+                    'recipient' => $this->recipientPhone,
+                ]);
+
+                return;
+            }
 
             if ($this->useTemplate) {
                 $result = $whatsapp->sendTemplate($this->recipientPhone, $this->messageTemplate, $this->templateParams);
@@ -41,35 +52,35 @@ class SendWhatsappMessage implements ShouldQueue
             }
 
             WhatsappOutbox::create([
-                'tenant_id'        => $this->tenantId,
-                'appointment_id'   => $this->appointmentId,
-                'recipient_phone'  => $this->recipientPhone,
-                'recipient_type'   => $this->recipientType,
+                'tenant_id' => $this->tenantId,
+                'appointment_id' => $this->appointmentId,
+                'recipient_phone' => $this->recipientPhone,
+                'recipient_type' => $this->recipientType,
                 'message_template' => $this->messageTemplate,
-                'message'          => $this->message,
-                'status'           => 'sent',
-                'sent_at'          => now(),
+                'message' => $this->message,
+                'status' => 'sent',
+                'sent_at' => now(),
             ]);
 
             Log::info('WhatsApp message sent', [
                 'recipient' => $this->recipientPhone,
-                'template'  => $this->messageTemplate,
-                'result'    => $result['messages'][0]['id'] ?? 'ok',
+                'template' => $this->messageTemplate,
+                'result' => $result['messages'][0]['id'] ?? 'ok',
             ]);
         } catch (\Throwable $e) {
             WhatsappOutbox::create([
-                'tenant_id'        => $this->tenantId,
-                'appointment_id'   => $this->appointmentId,
-                'recipient_phone'  => $this->recipientPhone,
-                'recipient_type'   => $this->recipientType,
+                'tenant_id' => $this->tenantId,
+                'appointment_id' => $this->appointmentId,
+                'recipient_phone' => $this->recipientPhone,
+                'recipient_type' => $this->recipientType,
                 'message_template' => $this->messageTemplate,
-                'message'          => $this->message,
-                'status'           => 'failed',
+                'message' => $this->message,
+                'status' => 'failed',
             ]);
 
             Log::error('WhatsApp message failed', [
                 'recipient' => $this->recipientPhone,
-                'error'     => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
             throw $e;
